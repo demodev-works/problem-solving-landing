@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { BookOpen, RotateCcw, BarChart3, User, CheckCircle, Facebook, Twitter, MessageCircle, ChevronDown } from "lucide-react"
 import Image from "next/image"
 
+export const revalidate = 0;
+
 export default function MoonpulLanding() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
