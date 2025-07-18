@@ -51,7 +51,7 @@ export default function MoonpulLanding() {
             {/* Main heading with gradient text */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
-                꿈을 현실로 만드는 학생 맞춤형 편입 교육 서비스
+                꿈을 현실로 만드는 편입 교육 서비스
               </span>
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3E64FF] to-purple-600">
