@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { BookOpen, RotateCcw, BarChart3, User, CheckCircle, Facebook, Twitter, MessageCircle, ChevronDown } from "lucide-react"
 import Image from "next/image"
 
-export const revalidate = 0;
+// export const revalidate = 0;
 
 export default function MoonpulLanding() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -49,13 +49,13 @@ export default function MoonpulLanding() {
             </div>
             
             {/* Main heading with gradient text */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
-                수험생을 위한 똑똑한
+                꿈을 현실로 만드는 학생 맞춤형 편입 교육 서비스
               </span>
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3E64FF] to-purple-600">
-                문제풀이 앱, 문풀앱
+                메디컬 부스트
               </span>
             </h1>
             
@@ -76,7 +76,7 @@ export default function MoonpulLanding() {
                     <svg className="w-12 h-12 text-[#3E64FF]/20 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
                     </svg>
-                    <p className="text-2xl md:text-3xl font-light text-gray-800 italic mt-2">
+                    <p className="text-2xl md:text-2xl font-light text-gray-800 italic mt-2">
                       학생 중심의 맞춤형 편입 교육으로 꿈을 현실로 만듭니다
                     </p>
                   </div>
@@ -193,8 +193,8 @@ export default function MoonpulLanding() {
       <section className="px-4 py-16 bg-white">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">실제 사용 시나리오</h2>
-            <p className="text-lg text-gray-600">수험생이 문풀앱을 어떻게 활용하는지 살펴보세요</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">실제 사용 후기</h2>
+            {/* <p className="text-lg text-gray-600">수험생이 문풀앱을 어떻게 활용하는지 살펴보세요</p> */}
           </div>
 
           <Card className="p-8 bg-gradient-to-r from-[#3E64FF]/5 to-[#FFAA00]/5 border-2 border-[#3E64FF]/20">
@@ -212,15 +212,15 @@ export default function MoonpulLanding() {
               <div className="space-y-4 pl-16">
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-[#3E64FF] rounded-full mt-2"></div>
-                  <p className="text-gray-700">매일 아침 전날 틀린 문제 복습</p>
+                  <p className="text-gray-700">매일 아침 전날 틀린 문제 복습을 할 수 있어 좋았습니다.</p>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-[#FFAA00] rounded-full mt-2"></div>
-                  <p className="text-gray-700">오늘 학습 진도율 확인 후 부족한 과목에 집중</p>
+                  <p className="text-gray-700">오늘 학습 진도율 확인 후 부족한 과목에 집중할 수 있어 좋았어요.</p>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-[#10B981] rounded-full mt-2"></div>
-                  <p className="text-gray-700">암기 기능을 이용해 취약 부분 보안하기</p>
+                  <p className="text-gray-700">암기 기능을 이용해 취약 부분도 보안할 수 있어 만족스럽습니다.</p>
                 </div>
               </div>
             </CardContent>
