@@ -11,12 +11,11 @@ import {
 import { updateProgress, ProblemProgress } from '@/lib/admin/problemService';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 
-interface Subject extends SubjectWithDetails {}
 
 export default function SubjectsPage() {
   const { shouldRender } = useRequireAuth();
   const router = useRouter();
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjects, setSubjects] = useState<SubjectWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -118,7 +117,7 @@ export default function SubjectsPage() {
 
   const headers = ['과목명', '관련 전공', '진도 수', '작업'];
 
-  const renderRow = (subject: Subject) => (
+  const renderRow = (subject: SubjectWithDetails) => (
     <>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         <div className="flex items-center">

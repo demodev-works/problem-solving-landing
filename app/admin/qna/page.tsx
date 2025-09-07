@@ -8,7 +8,7 @@ import {
   getQuestions,
   Question,
   QuestionsResponse,
-  calculateQuestionStatistics,
+  // calculateQuestionStatistics,
   // TODO: 통계 API 개발 시 아래 주석 해제
   // getQuestionStatistics,
 } from '@/lib/admin/qnaService';
@@ -58,7 +58,6 @@ export default function QnaPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
-
 
   useEffect(() => {
     if (shouldRender) {
@@ -168,7 +167,6 @@ export default function QnaPage() {
       setLoading(false);
     }
   };
-
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -397,7 +395,6 @@ export default function QnaPage() {
             </>
           )}
         </div>
-
       </div>
     </div>
   );

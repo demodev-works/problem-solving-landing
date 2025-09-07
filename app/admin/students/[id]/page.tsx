@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getUserById,
-  updateUser,
+  // updateUser,
   patchUser,
   activateUser,
   deactivateUser,

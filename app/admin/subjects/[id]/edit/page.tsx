@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import {
   getSubjectById,
   getSubjectMajors,
-  getSubjectProgresses,
+  // getSubjectProgresses,
   getPrepareMajors,
   updateSubject,
   updateSubjectMajors,

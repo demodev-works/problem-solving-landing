@@ -217,39 +217,6 @@ export default function StudentsPage() {
     }
   };
 
-  const handleActivateUser = async (userId: string, currentStatus: boolean) => {
-    try {
-      if (currentStatus) {
-        await deactivateUser(userId);
-        alert('사용자가 비활성화되었습니다.');
-      } else {
-        await activateUser(userId);
-        alert('사용자가 활성화되었습니다.');
-      }
-      await fetchData();
-    } catch (error) {
-      console.error('사용자 상태 변경 실패:', error);
-      alert('사용자 상태 변경 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleDeleteUser = async (userId: string) => {
-    if (
-      confirm(
-        '정말로 이 사용자를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'
-      )
-    ) {
-      try {
-        await deleteUser(userId);
-        alert('사용자가 삭제되었습니다.');
-        await fetchData();
-      } catch (error) {
-        console.error('사용자 삭제 실패:', error);
-        alert('사용자 삭제 중 오류가 발생했습니다.');
-      }
-    }
-  };
-
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedMajor('');

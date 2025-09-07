@@ -8,16 +8,16 @@ import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getProgresses,
   deleteProgress,
-  uploadProblemData,
+  // uploadProblemData,
   ProblemProgress,
-  ProblemManagement,
+  // ProblemManagement,
   createProgress,
   createProblem,
   createProblemSelect,
   getProblemsByProgress,
 } from '@/lib/admin/problemService';
 import {
-  getSubjectsWithDetails,
+  // getSubjectsWithDetails,
   getSubjects,
 } from '@/lib/admin/subjectService';
 

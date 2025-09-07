@@ -10,7 +10,6 @@ import {
   togglePopupState,
 } from '@/lib/admin/popupService';
 import { uploadImage } from '@/lib/admin/uploadService';
-import { UPLOAD_FOLDERS } from '@/lib/admin/constants';
 import { getImageUrl, extractImagePath } from '@/lib/admin/imageUtils';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 

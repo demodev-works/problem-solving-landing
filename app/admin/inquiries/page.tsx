@@ -8,7 +8,6 @@ import {
 } from '@/lib/admin/inquiryService';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 
-interface Inquiry extends FormattedInquiry {}
 
 export default function InquiriesPage() {
   const { shouldRender } = useRequireAuth();

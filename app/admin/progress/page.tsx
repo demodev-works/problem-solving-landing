@@ -7,12 +7,12 @@ import * as XLSX from 'xlsx';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getProgresses,
-  getProblems,
+  // getProblems,
   deleteProgress,
-  uploadProgressData,
-  uploadProblemData,
+  // uploadProgressData,
+  // uploadProblemData,
   ProblemProgress,
-  ProblemManagement,
+  // ProblemManagement,
   createProgress,
   createProblem,
   createProblemSelect,
@@ -41,9 +41,9 @@ interface Subject {
 
 export default function ProblemsPage() {
   const {
-    user,
+    // user,
     loading: authLoading,
-    isAuthenticated,
+    // isAuthenticated,
     shouldRender,
   } = useRequireAuth();
   const router = useRouter();

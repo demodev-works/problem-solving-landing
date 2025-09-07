@@ -9,9 +9,9 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children, fallback }: AuthGuardProps) {
   const {
-    user,
+    // user,
     loading: authLoading,
-    isAuthenticated,
+    // isAuthenticated,
     shouldRender,
   } = useRequireAuth();
 
