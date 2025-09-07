@@ -6,7 +6,6 @@ import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getProblemById,
   updateProblem,
-  updateProblemSelect,
   createProblemSelect,
   deleteProblemSelect,
   ProblemManagement,
@@ -27,12 +26,7 @@ interface Question {
 }
 
 function EditProblemContent() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -76,7 +70,7 @@ function EditProblemContent() {
         year: problemData.exam_year
           ? new Date(problemData.exam_year).getFullYear()
           : undefined,
-        image: problemData.image_url || '',
+        image: problemData.image || '',
       });
 
       setError(null);
@@ -173,9 +167,8 @@ function EditProblemContent() {
         problemData.exam_year = `${question.year}-01-01`;
       }
 
-      if (question.image && question.image.trim()) {
-        problemData.image_url = question.image.trim();
-      }
+      // 이미지는 새로 업로드된 파일이 있을 때만 처리
+      // 기존 이미지 URL은 보내지 않음
 
       console.log('PATCH로 보내는 데이터:', problemData);
       await updateProblem(problem.problem_management_id, problemData);
@@ -186,7 +179,7 @@ function EditProblemContent() {
       }
 
       // 새 선택지 생성
-      const validOptions = question.options.filter((opt) => opt.trim());
+      const validOptions = question.options.filter((opt) => opt && opt.trim());
       for (let i = 0; i < validOptions.length; i++) {
         await createProblemSelect({
           question_number: i + 1,
@@ -213,10 +206,10 @@ function EditProblemContent() {
       question.question.trim() &&
       question.answer &&
       question.explanation.trim() &&
-      question.options.filter((opt) => opt.trim()).length >= 2 &&
+      question.options.filter((opt) => opt && opt.trim()).length >= 2 &&
       question.options
-        .slice(0, question.options.filter((opt) => opt.trim()).length)
-        .every((opt) => opt.trim())
+        .slice(0, question.options.filter((opt) => opt && opt.trim()).length)
+        .every((opt) => opt && opt.trim())
     );
   };
 

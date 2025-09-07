@@ -9,22 +9,16 @@ import {
   deletePopup,
   togglePopupState,
 } from '@/lib/admin/popupService';
-import { uploadImage, deleteImage } from '@/lib/admin/uploadService';
+import { uploadImage } from '@/lib/admin/uploadService';
 import { UPLOAD_FOLDERS } from '@/lib/admin/constants';
 import { getImageUrl, extractImagePath } from '@/lib/admin/imageUtils';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 
 export default function PopupsPage() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const [popups, setPopups] = useState<Popup[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedPopup, setSelectedPopup] = useState<Popup | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -112,42 +106,6 @@ export default function PopupsPage() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteImage = async () => {
-    if (!selectedPopup?.image_url) return;
-
-    if (confirm('정말로 이미지를 삭제하시겠습니까?')) {
-      try {
-        // 서버에서 이미지 파일 삭제
-        await deleteImage(selectedPopup.image_url);
-
-        // 데이터베이스에서도 즉시 이미지 URL 제거
-        const updateData = {
-          title: selectedPopup.title,
-          content: selectedPopup.content,
-          image_url: '', // 이미지 URL을 빈 값으로 설정
-          state: selectedPopup.state,
-          oldImageUrl: selectedPopup.image_url,
-        };
-        
-        await updatePopup(selectedPopup.pop_up_id, updateData);
-
-        // 로컬 상태 업데이트 - selectedPopup의 image_url을 빈 값으로 변경
-        setSelectedPopup({
-          ...selectedPopup,
-          image_url: ''
-        });
-
-        // 목록도 새로고침하여 동기화
-        await loadPopups();
-
-        alert('이미지가 삭제되었습니다.');
-      } catch (error) {
-        console.error('이미지 삭제 오류:', error);
-        alert('이미지 삭제에 실패했습니다.');
-      }
-    }
-  };
-
   const handleSavePopup = async () => {
     if (!formData.title || !formData.content) {
       alert('제목과 내용을 모두 입력해주세요.');
@@ -155,14 +113,11 @@ export default function PopupsPage() {
     }
 
     try {
-      let imageUrl = selectedPopup?.image_url || '';
+      let imageUrl = selectedPopup?.image || '';
 
       // 새 이미지가 업로드된 경우
       if (formData.imageFile) {
-        const uploadedPath = await uploadImage(
-          formData.imageFile,
-          UPLOAD_FOLDERS.POPUPS
-        );
+        const uploadedPath = await uploadImage(formData.imageFile);
         imageUrl = extractImagePath(uploadedPath); // 순수 경로만 저장
       }
 
@@ -177,7 +132,7 @@ export default function PopupsPage() {
         // 수정 - 기존 이미지 URL도 함께 전송
         const updateData = {
           ...popupData,
-          oldImageUrl: selectedPopup.image_url, // 기존 이미지 URL 추가
+          oldImageUrl: selectedPopup.image, // 기존 이미지 URL 추가
         };
         await updatePopup(selectedPopup.pop_up_id, updateData);
       } else {
@@ -199,22 +154,7 @@ export default function PopupsPage() {
   const handleDeletePopup = async (id: number) => {
     if (confirm('정말로 이 팝업을 삭제하시겠습니까?')) {
       try {
-        // 삭제할 팝업의 이미지 URL 찾기
-        const popupToDelete = popups.find(popup => popup.pop_up_id === id);
-        
-        // 팝업 삭제
         await deletePopup(id);
-        
-        // 이미지가 있으면 함께 삭제
-        if (popupToDelete?.image_url) {
-          try {
-            await deleteImage(popupToDelete.image_url);
-          } catch (imageError) {
-            console.error('이미지 삭제 오류:', imageError);
-            // 이미지 삭제 실패해도 팝업 삭제는 완료된 상태이므로 계속 진행
-          }
-        }
-        
         await loadPopups(); // 목록 새로고침
         alert('팝업이 삭제되었습니다.');
       } catch (error) {
@@ -234,20 +174,14 @@ export default function PopupsPage() {
     }
   };
 
-  const handlePreviewPopup = (popup: Popup) => {
-    setSelectedPopup(popup);
-    setIsPreviewOpen(true);
-  };
 
-  // 인증 로딩 중이거나 인증되지 않은 경우
-  if (authLoading || !shouldRender) {
+  // 인증되지 않은 경우
+  if (!shouldRender) {
     return (
       <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">
-            {authLoading ? '인증 확인 중...' : '로그인 페이지로 이동 중...'}
-          </p>
+          <p className="mt-4 text-gray-600">로그인 페이지로 이동 중...</p>
         </div>
       </div>
     );
@@ -286,7 +220,7 @@ export default function PopupsPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  미리보기
+                  이미지
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   제목
@@ -310,20 +244,14 @@ export default function PopupsPage() {
                 popups.map((popup) => (
                   <tr key={popup.pop_up_id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div
-                        className="w-20 h-20 rounded-lg cursor-pointer bg-gray-100"
-                        onClick={() => handlePreviewPopup(popup)}
-                      >
-                        {popup.image_url && (
+                      <div className="w-20 h-20 rounded-lg bg-gray-100">
+                        {popup.image && (
                           <img
-                            src={getImageUrl(popup.image_url) || ''}
+                            src={getImageUrl(popup.image) || ''}
                             alt={popup.title}
                             className="w-full h-full object-cover rounded-lg"
                             onError={(e) => {
-                              console.error(
-                                '이미지 로드 실패:',
-                                popup.image_url
-                              );
+                              console.error('이미지 로드 실패:', popup.image);
                               e.currentTarget.style.display = 'none';
                             }}
                           />
@@ -387,7 +315,7 @@ export default function PopupsPage() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div
-              className="fixed inset-0 bg-opacity-30"
+              className="fixed inset-0"
               onClick={() => setIsModalOpen(false)}
             ></div>
 
@@ -431,40 +359,12 @@ export default function PopupsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     팝업 이미지
                   </label>
-                  {selectedPopup?.image_url && (
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-600 mb-2">현재 이미지:</p>
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={getImageUrl(selectedPopup.image_url) || ''}
-                          alt="현재 이미지"
-                          className="w-20 h-20 object-cover rounded-lg border"
-                        />
-                        <div className="flex-1">
-                          <span className="text-sm text-gray-500 block">
-                            {selectedPopup.image_url}
-                          </span>
-                          <button
-                            onClick={handleDeleteImage}
-                            className="mt-2 px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-                          >
-                            이미지 삭제
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
                     className="w-full px-3 py-2 text-gray-800 border border-gray-300 rounded-md"
                   />
-                  {formData.imageFile && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      새 파일 선택됨: {formData.imageFile.name}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -502,44 +402,6 @@ export default function PopupsPage() {
           </div>
         )}
 
-        {/* 팝업 미리보기 모달 */}
-        {isPreviewOpen && selectedPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="relative max-w-sm mx-4">
-              <div className="bg-white rounded-2xl shadow-2xl p-8">
-                <h3 className="text-2xl font-bold text-center mb-4 text-gray-800">
-                  {selectedPopup.title}
-                </h3>
-
-                {selectedPopup.image_url && (
-                  <img
-                    src={getImageUrl(selectedPopup.image_url) || ''}
-                    alt={selectedPopup.title}
-                    className="w-full max-w-xs mx-auto mb-6 rounded-lg"
-                    onError={(e) => {
-                      console.error(
-                        '미리보기 이미지 로드 실패:',
-                        selectedPopup.image_url
-                      );
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                )}
-
-                <p className="text-gray-600 mb-6 text-center">
-                  {selectedPopup.content}
-                </p>
-
-                <button
-                  onClick={() => setIsPreviewOpen(false)}
-                  className="w-full py-3 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-900"
-                >
-                  닫기
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

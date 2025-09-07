@@ -10,8 +10,6 @@ import {
   MemoProgress,
 } from '@/lib/admin/memoService';
 
-type Difficulty = '기본' | '심화';
-
 interface MemoCard {
   id: number;
   question: string;
@@ -19,12 +17,7 @@ interface MemoCard {
 }
 
 function NewMemorizationContent() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const progressId = searchParams.get('progress_id');
@@ -63,8 +56,8 @@ function NewMemorizationContent() {
         progressesData.filter((p) => p.name && p.name.trim())
       );
     } catch (error) {
-      console.error('멤모 진도 옵션 조회 실패:', error);
-      setError('멤모 진도 목록을 불러오는데 실패했습니다.');
+      console.error('암기 진도 옵션 조회 실패:', error);
+      setError('암기 진도 목록을 불러오는데 실패했습니다.');
     }
   };
 
@@ -74,12 +67,12 @@ function NewMemorizationContent() {
       const progressData = await getMemoProgressById(Number(id));
       setFormData({
         memo_progress: id,
-        progressName: progressData.name || '멤모 진도명 없음',
+        progressName: progressData.name || '암기 진도명 없음',
       });
       setError(null);
     } catch (error) {
-      console.error('멤모 진도 정보 조회 실패:', error);
-      setError('멤모 진도 정보를 불러오는데 실패했습니다.');
+      console.error('암기 진도 정보 조회 실패:', error);
+      setError('암기 진도 정보를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -102,7 +95,11 @@ function NewMemorizationContent() {
     }
   };
 
-  const handleCardChange = (id: number, field: keyof MemoCard, value: any) => {
+  const handleCardChange = (
+    id: number,
+    field: keyof MemoCard,
+    value: string
+  ) => {
     setCards(cards.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
   };
 
@@ -111,7 +108,7 @@ function NewMemorizationContent() {
 
     setSaving(true);
     try {
-      // 각 카드를 멤모 문제로 생성
+      // 각 카드를 암기 문제로 생성
       for (const card of cards) {
         const memoData = {
           memo_progress: Number(formData.memo_progress),
@@ -122,14 +119,14 @@ function NewMemorizationContent() {
         await createMemoProblemData(memoData);
       }
 
-      alert('멤모 문제가 성공적으로 저장되었습니다.');
+      alert('암기 문제가 성공적으로 저장되었습니다.');
       router.push(
         progressId ? `/admin/memorization/${progressId}` : '/memorization'
       );
     } catch (error) {
-      console.error('멤모 문제 생성 실패:', error);
-      setError('멤모 문제 생성 중 오류가 발생했습니다.');
-      alert('멤모 문제 생성 중 오류가 발생했습니다.');
+      console.error('암기 문제 생성 실패:', error);
+      setError('암기 문제 생성 중 오류가 발생했습니다.');
+      alert('암기 문제 생성 중 오류가 발생했습니다.');
     } finally {
       setSaving(false);
     }
@@ -160,11 +157,11 @@ function NewMemorizationContent() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              새 멤모 문제 추가
+              새 암기 문제 추가
             </h1>
             {progressId && (
               <p className="mt-1 text-sm text-gray-500">
-                멤모 진도: {formData.progressName}
+                암기 진도: {formData.progressName}
               </p>
             )}
           </div>
@@ -200,7 +197,7 @@ function NewMemorizationContent() {
             <div className="flex items-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
               <span className="text-sm text-blue-700">
-                멤모 진도 정보를 불러오는 중...
+                암기 진도 정보를 불러오는 중...
               </span>
             </div>
           </div>
@@ -212,14 +209,14 @@ function NewMemorizationContent() {
             <h2 className="text-lg font-medium text-gray-900">기본 정보</h2>
             {progressId && (
               <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                ✓ 멤모 진도 정보에서 자동 설정됨
+                ✓ 암기 진도 정보에서 자동 설정됨
               </span>
             )}
           </div>
           {progressId && (
             <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
               <p className="text-sm text-gray-600">
-                선택된 멤모 진도의 정보가 자동으로 설정되었습니다. 필요하다면
+                선택된 암기 진도의 정보가 자동으로 설정되었습니다. 필요하다면
                 아래 드롭다운에서 수정할 수 있습니다.
               </p>
             </div>
@@ -227,7 +224,7 @@ function NewMemorizationContent() {
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                멤모 진도 <span className="text-red-500">*</span>
+                암기 진도 <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.memo_progress}
@@ -242,7 +239,7 @@ function NewMemorizationContent() {
                 }}
                 className="block w-full pl-3 pr-10 py-2 text-base text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">멤모 진도를 선택하세요</option>
+                <option value="">암기 진도를 선택하세요</option>
                 {allProgressOptions.map((progress) => (
                   <option
                     key={progress.memo_progress_id}
@@ -257,7 +254,7 @@ function NewMemorizationContent() {
           </div>
         </div>
 
-        {/* 멤모 카드 입력 */}
+        {/* 암기 카드 입력 */}
         <div className="space-y-4 mb-6">
           {cards.map((card, cIndex) => (
             <div key={card.id} className="bg-white shadow rounded-lg p-6">
@@ -298,7 +295,7 @@ function NewMemorizationContent() {
                       handleCardChange(card.id, 'question', e.target.value)
                     }
                     rows={3}
-                    placeholder="멤모할 문제를 입력하세요..."
+                    placeholder="암기할 문제를 입력하세요..."
                     className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>

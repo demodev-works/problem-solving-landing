@@ -34,12 +34,7 @@ interface UserDisplay {
 
 export default function StudentsPage() {
   const router = useRouter();
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
 
   // 상태 관리
   const [users, setUsers] = useState<UserDisplay[]>([]);

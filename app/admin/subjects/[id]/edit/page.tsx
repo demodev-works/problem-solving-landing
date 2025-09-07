@@ -110,7 +110,7 @@ export default function EditSubjectPage() {
       await updateSubjectMajors(parseInt(subjectId), selectedMajors);
 
       alert('과목이 성공적으로 수정되었습니다.');
-      router.push('/admin/subjects');
+      router.push('/subjects');
     } catch (error) {
       console.error('과목 수정 실패:', error);
       alert('과목 수정 중 오류가 발생했습니다.');

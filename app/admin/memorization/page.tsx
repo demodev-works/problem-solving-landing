@@ -11,10 +11,8 @@ import {
   deleteMemoProgress,
   updateMemoProgress,
   createMemoProgress,
-  createMemoProblemData,
   bulkCreateMemoProblemData,
   MemoProgress,
-  MemoProblemData,
 } from '@/lib/admin/memoService';
 
 type Difficulty = '기본' | '심화';
@@ -28,15 +26,9 @@ interface MemoProgressDisplay {
 }
 
 export default function MemorizationPage() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('all');
   const [memoProgresses, setMemoProgresses] = useState<MemoProgressDisplay[]>(
     []
   );
@@ -228,7 +220,7 @@ export default function MemorizationPage() {
     const validMemoDataList: any[] = [];
 
     // 모든 데이터를 검증하고 배열에 수집
-    for (const [index, row] of data.entries()) {
+    for (const row of data) {
       // 진도명으로 진도 ID 찾기
       const progressName = row.progress || row.진도 || row.진도명 || row.name;
       if (!progressName) {
@@ -514,7 +506,7 @@ export default function MemorizationPage() {
 
         {/* 진도 수정 모달 */}
         {editingProgress && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="fixed inset-0 overflow-y-auto h-full w-full z-50">
             <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">

@@ -26,12 +26,7 @@ interface Question {
 }
 
 function NewProblemContent() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedProgressId = searchParams.get('progress_id');

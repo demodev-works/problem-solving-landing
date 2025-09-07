@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Notice } from '@/types';
 import {
   getNotices,
   createNotice,
@@ -9,18 +8,13 @@ import {
   deleteNotice,
   NoticeWithImageUrl,
 } from '@/lib/admin/noticeService';
-import { uploadImage, deleteImage } from '@/lib/admin/uploadService';
+import { uploadImage } from '@/lib/admin/uploadService';
 import { UPLOAD_FOLDERS } from '@/lib/admin/constants';
 import { getImageUrl, extractImagePath } from '@/lib/admin/imageUtils';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 
 export default function NoticesPage() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const [notices, setNotices] = useState<NoticeWithImageUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,41 +105,6 @@ export default function NoticesPage() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteImage = async () => {
-    if (!selectedNotice?.image_url) return;
-
-    if (confirm('정말로 이미지를 삭제하시겠습니까?')) {
-      try {
-        // 서버에서 이미지 파일 삭제
-        await deleteImage(selectedNotice.image_url);
-
-        // 데이터베이스에서도 즉시 이미지 URL 제거
-        const updateData = {
-          title: selectedNotice.title,
-          content: selectedNotice.content,
-          image_url: '', // 이미지 URL을 빈 값으로 설정
-          oldImageUrl: selectedNotice.image_url,
-        };
-        
-        await updateNotice(selectedNotice.notice_id, updateData);
-
-        // 로컬 상태 업데이트 - selectedNotice의 image_url을 빈 값으로 변경
-        setSelectedNotice({
-          ...selectedNotice,
-          image_url: ''
-        });
-
-        // 목록도 새로고침하여 동기화
-        await loadNotices();
-
-        alert('이미지가 삭제되었습니다.');
-      } catch (error) {
-        console.error('이미지 삭제 오류:', error);
-        alert('이미지 삭제에 실패했습니다.');
-      }
-    }
-  };
-
   const handleSaveNotice = async () => {
     if (!formData.title || !formData.content) {
       alert('제목과 내용을 모두 입력해주세요.');
@@ -157,10 +116,7 @@ export default function NoticesPage() {
 
       // 새 이미지가 업로드된 경우
       if (formData.imageFile) {
-        const uploadedPath = await uploadImage(
-          formData.imageFile,
-          UPLOAD_FOLDERS.NOTICES
-        );
+        const uploadedPath = await uploadImage(formData.imageFile);
         imageUrl = extractImagePath(uploadedPath); // 순수 경로만 저장
       }
 
@@ -198,22 +154,7 @@ export default function NoticesPage() {
   const handleDeleteNotice = async (id: number) => {
     if (confirm('정말로 이 공지사항을 삭제하시겠습니까?')) {
       try {
-        // 삭제할 공지사항의 이미지 URL 찾기
-        const noticeToDelete = notices.find(notice => notice.notice_id === id);
-        
-        // 공지사항 삭제
         await deleteNotice(id);
-        
-        // 이미지가 있으면 함께 삭제
-        if (noticeToDelete?.image_url) {
-          try {
-            await deleteImage(noticeToDelete.image_url);
-          } catch (imageError) {
-            console.error('이미지 삭제 오류:', imageError);
-            // 이미지 삭제 실패해도 공지사항 삭제는 완료된 상태이므로 계속 진행
-          }
-        }
-        
         await loadNotices(); // 목록 새로고침
         alert('공지사항이 삭제되었습니다.');
       } catch (error) {
@@ -223,15 +164,13 @@ export default function NoticesPage() {
     }
   };
 
-  // 인증 로딩 중이거나 인증되지 않은 경우
-  if (authLoading || !shouldRender) {
+  // 인증되지 않은 경우
+  if (!shouldRender) {
     return (
       <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">
-            {authLoading ? '인증 확인 중...' : '로그인 페이지로 이동 중...'}
-          </p>
+          <p className="mt-4 text-gray-600">로그인 페이지로 이동 중...</p>
         </div>
       </div>
     );
@@ -353,7 +292,7 @@ export default function NoticesPage() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div
-              className="fixed inset-0 bg-opacity-100"
+              className="fixed inset-0"
               onClick={() => setIsModalOpen(false)}
             ></div>
 
@@ -397,40 +336,12 @@ export default function NoticesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     공지사항 이미지
                   </label>
-                  {selectedNotice?.image_url && (
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-600 mb-2">현재 이미지:</p>
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={getImageUrl(selectedNotice.image_url) || ''}
-                          alt="현재 이미지"
-                          className="w-20 h-20 object-cover rounded-lg border"
-                        />
-                        <div className="flex-1">
-                          <span className="text-sm text-gray-500 block">
-                            {selectedNotice.image_url}
-                          </span>
-                          <button
-                            onClick={handleDeleteImage}
-                            className="mt-2 px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-                          >
-                            이미지 삭제
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
                     className="w-full px-3 py-2 text-gray-800 border border-gray-300 rounded-md"
                   />
-                  {formData.imageFile && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      새 파일 선택됨: {formData.imageFile.name}
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">

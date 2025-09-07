@@ -18,12 +18,7 @@ import {
 } from '@/lib/admin/userService';
 
 export default function StudentDetailPage() {
-  const {
-    user: authUser,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
@@ -183,7 +178,7 @@ export default function StudentDetailPage() {
       try {
         await deleteUser(userId);
         alert('사용자가 삭제되었습니다.');
-        router.push('admin/students');
+        router.push('/students');
       } catch (error) {
         console.error('사용자 삭제 실패:', error);
         alert('사용자 삭제 중 오류가 발생했습니다.');

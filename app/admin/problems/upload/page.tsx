@@ -39,12 +39,7 @@ interface ExcelProblemRow {
 }
 
 export default function QuestionUploadPage() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploadType, setUploadType] = useState<'progress' | 'problem'>(

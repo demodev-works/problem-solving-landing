@@ -6,16 +6,10 @@ import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getMemoProblemDataById,
   updateMemoProblemData,
-  MemoProblemData,
 } from '@/lib/admin/memoService';
 
 function EditMemorizationContent() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();

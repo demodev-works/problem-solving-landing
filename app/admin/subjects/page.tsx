@@ -14,12 +14,7 @@ import { useRequireAuth } from '@/hooks/admin/useAuth';
 interface Subject extends SubjectWithDetails {}
 
 export default function SubjectsPage() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);

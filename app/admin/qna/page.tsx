@@ -6,7 +6,6 @@ import { useRequireAuth } from '@/hooks/admin/useAuth';
 import DataTable from '@/components/admin/DataTable';
 import {
   getQuestions,
-  answerQuestion,
   Question,
   QuestionsResponse,
   calculateQuestionStatistics,
@@ -16,22 +15,27 @@ import {
 
 interface QuestionDisplay {
   question_id: number;
-  user: string;
-  problem_management: number;
+  user_email: string;
+  title: string;
   content: string;
-  state: 'pending' | 'answered' | 'closed';
+  state: 'pending' | 'answered';
   content_answer: string | null;
   created_at: string;
-  problem_content: string;
+  problem_info: {
+    problem_management_id: number;
+    content: string;
+    answer: number;
+    explanation: string;
+    image?: string | null;
+    selects: {
+      question_number: number;
+      content: string;
+    }[];
+  };
 }
 
 export default function QnaPage() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
 
   // 상태 관리
   const [questions, setQuestions] = useState<QuestionDisplay[]>([]);
@@ -41,13 +45,12 @@ export default function QnaPage() {
     total: number;
     pending: number;
     answered: number;
-    closed: number;
   } | null>(null);
 
   // 검색 및 필터 상태
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedState, setSelectedState] = useState<
-    'all' | 'pending' | 'answered' | 'closed'
+    'all' | 'pending' | 'answered'
   >('all');
 
   // 페이지네이션 상태
@@ -56,11 +59,6 @@ export default function QnaPage() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
 
-  // 모달 상태
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] =
-    useState<QuestionDisplay | null>(null);
-  const [answer, setAnswer] = useState('');
 
   useEffect(() => {
     if (shouldRender) {
@@ -117,13 +115,13 @@ export default function QnaPage() {
         (question: Question) => {
           return {
             question_id: question.question_id,
-            user: question.user,
-            problem_management: question.problem_management,
+            user_email: question.user_email,
+            title: question.title,
             content: question.content,
             state: question.state,
             content_answer: question.content_answer,
             created_at: question.created_at,
-            problem_content: question.problem_content,
+            problem_info: question.problem_info,
           };
         }
       );
@@ -137,8 +135,13 @@ export default function QnaPage() {
       // TODO: 통계 API 개발 시 아래 주석 해제하고 calculateQuestionStatistics 부분을 제거하세요
       // const stats = await getQuestionStatistics();
 
-      // 임시: 클라이언트 사이드에서 통계 계산
-      const stats = calculateQuestionStatistics(formattedQuestions);
+      // 임시: 클라이언트 사이드에서 통계 계산 (API 문서에 맞게 수정)
+      const stats = {
+        total: formattedQuestions.length,
+        pending: formattedQuestions.filter((q) => q.state === 'pending').length,
+        answered: formattedQuestions.filter((q) => q.state === 'answered')
+          .length,
+      };
       setStatistics(stats);
     } catch (error: any) {
       let errorMessage = '질문 목록을 불러오는데 실패했습니다.';
@@ -166,46 +169,6 @@ export default function QnaPage() {
     }
   };
 
-  const handleOpenModal = (question: QuestionDisplay) => {
-    setSelectedQuestion(question);
-    setAnswer(question.content_answer || '');
-    setIsModalOpen(true);
-  };
-
-  const handleSaveAnswer = async () => {
-    if (!selectedQuestion) return;
-
-    try {
-      await answerQuestion(selectedQuestion.question_id, {
-        content_answer: answer,
-      });
-
-      // 로컬 상태 업데이트
-      setQuestions(
-        questions.map((q) =>
-          q.question_id === selectedQuestion.question_id
-            ? { ...q, content_answer: answer, state: 'answered' as const }
-            : q
-        )
-      );
-
-      setIsModalOpen(false);
-      setSelectedQuestion(null);
-      setAnswer('');
-
-      // TODO: 통계 API 개발 시 아래 주석 해제하고 calculateQuestionStatistics 부분을 제거하세요
-      // await fetchStatistics();
-
-      // 임시: 통계 새로고침 (로컬에서 계산)
-      const stats = calculateQuestionStatistics(questions);
-      setStatistics(stats);
-
-      alert('답변이 성공적으로 저장되었습니다.');
-    } catch (error) {
-      console.error('답변 저장 실패:', error);
-      alert('답변 저장 중 오류가 발생했습니다.');
-    }
-  };
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -216,8 +179,9 @@ export default function QnaPage() {
 
   const headers = [
     '질문 ID',
+    '사용자',
+    '제목',
     '문제 내용',
-    '질문 내용',
     '상태',
     '생성일',
     '작업',
@@ -229,12 +193,15 @@ export default function QnaPage() {
         {question.question_id}
       </td>
       <td className="px-6 py-4 text-sm text-gray-500">
-        <div className="max-w-xs truncate">
-          {question.problem_content || '문제 없음'}
-        </div>
+        <div className="max-w-xs truncate font-mono">{question.user_email}</div>
       </td>
       <td className="px-6 py-4 text-sm text-gray-500">
-        <div className="max-w-xs truncate">{question.content}</div>
+        <div className="max-w-xs truncate font-medium">{question.title}</div>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">
+        <div className="max-w-xs truncate">
+          {question.problem_info?.content || '문제 없음'}
+        </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         <span
@@ -258,17 +225,11 @@ export default function QnaPage() {
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         <Link
-          href={`/qna/${question.question_id}`}
-          className="text-blue-600 hover:text-blue-900 mr-3"
+          href={`/admin/qna/${question.question_id}`}
+          className="text-blue-600 hover:text-blue-900"
         >
-          상세
+          상세보기
         </Link>
-        <button
-          onClick={() => handleOpenModal(question)}
-          className="text-green-600 hover:text-green-900"
-        >
-          답변
-        </button>
       </td>
     </>
   );
@@ -292,7 +253,7 @@ export default function QnaPage() {
 
         {/* 통계 카드 */}
         {statistics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white p-4 rounded-lg shadow">
               <div className="text-sm font-medium text-gray-500">전체 질문</div>
               <div className="text-2xl font-bold text-gray-900">
@@ -309,12 +270,6 @@ export default function QnaPage() {
               <div className="text-sm font-medium text-gray-500">답변 완료</div>
               <div className="text-2xl font-bold text-green-600">
                 {statistics.answered.toLocaleString()}건
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-500">종료</div>
-              <div className="text-2xl font-bold text-gray-600">
-                {statistics.closed.toLocaleString()}건
               </div>
             </div>
           </div>
@@ -337,7 +292,7 @@ export default function QnaPage() {
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="질문 내용 또는 답변으로 검색..."
+                  placeholder="질문 내용, 답변 내용, 사용자 이메일로 검색..."
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <svg
@@ -365,7 +320,7 @@ export default function QnaPage() {
                 value={selectedState}
                 onChange={(e) =>
                   setSelectedState(
-                    e.target.value as 'all' | 'pending' | 'answered' | 'closed'
+                    e.target.value as 'all' | 'pending' | 'answered'
                   )
                 }
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -373,7 +328,6 @@ export default function QnaPage() {
                 <option value="all">전체</option>
                 <option value="pending">답변대기</option>
                 <option value="answered">답변완료</option>
-                <option value="closed">종료</option>
               </select>
             </div>
 
@@ -444,97 +398,6 @@ export default function QnaPage() {
           )}
         </div>
 
-        {/* 답변 모달 */}
-        {isModalOpen && selectedQuestion && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* 배경 오버레이 */}
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={() => setIsModalOpen(false)}
-            ></div>
-
-            {/* 모달 컨텐츠 */}
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                질문 답변 - ID: {selectedQuestion.question_id}
-              </h2>
-
-              <div className="space-y-4">
-                {/* 문제 내용 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    문제 내용
-                  </label>
-                  <textarea
-                    value={selectedQuestion.problem_content || '문제 내용 없음'}
-                    readOnly
-                    rows={3}
-                    className="w-full px-3 py-2 text-gray-800 bg-gray-50 border border-gray-300 rounded-md resize-none"
-                  />
-                </div>
-
-                {/* 질문 내용 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    질문 내용
-                  </label>
-                  <textarea
-                    value={selectedQuestion.content}
-                    readOnly
-                    rows={3}
-                    className="w-full px-3 py-2 text-gray-800 bg-gray-50 border border-gray-300 rounded-md resize-none"
-                  />
-                </div>
-
-                {/* 현재 답변 (있는 경우) */}
-                {selectedQuestion.content_answer && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      기존 답변
-                    </label>
-                    <textarea
-                      value={selectedQuestion.content_answer}
-                      readOnly
-                      rows={3}
-                      className="w-full px-3 py-2 text-gray-800 bg-gray-50 border border-gray-300 rounded-md resize-none"
-                    />
-                  </div>
-                )}
-
-                {/* 답변 입력 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    답변 {selectedQuestion.content_answer ? '수정' : '작성'}
-                  </label>
-                  <textarea
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    rows={6}
-                    placeholder="질문에 대한 답변을 입력하세요..."
-                    className="w-full px-3 py-2 text-gray-800 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* 버튼 */}
-                <div className="flex gap-2 pt-4">
-                  <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleSaveAnswer}
-                    disabled={!answer.trim()}
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    답변 저장
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

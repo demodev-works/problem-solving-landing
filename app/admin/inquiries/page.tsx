@@ -11,18 +11,14 @@ import { useRequireAuth } from '@/hooks/admin/useAuth';
 interface Inquiry extends FormattedInquiry {}
 
 export default function InquiriesPage() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
-  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const { shouldRender } = useRequireAuth();
+  const [selectedInquiry, setSelectedInquiry] =
+    useState<FormattedInquiry | null>(null);
   const [answer, setAnswer] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'latest' | 'status'>('latest');
-  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [inquiries, setInquiries] = useState<FormattedInquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +70,7 @@ export default function InquiriesPage() {
       return 0;
     });
 
-  const handleOpenModal = (inquiry: Inquiry) => {
+  const handleOpenModal = (inquiry: FormattedInquiry) => {
     console.log('Opening modal for inquiry:', inquiry);
     setSelectedInquiry(inquiry);
     setAnswer(inquiry.answer || '');
@@ -98,6 +94,7 @@ export default function InquiriesPage() {
         setIsModalOpen(false);
         setSelectedInquiry(null);
         setAnswer('');
+        alert('답변이 성공적으로 저장되었습니다.');
       } catch (err) {
         console.error('Failed to save answer:', err);
         alert('답변 저장에 실패했습니다. 다시 시도해주세요.');
@@ -228,6 +225,9 @@ export default function InquiriesPage() {
                     문의 내용
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    첨부파일
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -249,6 +249,27 @@ export default function InquiriesPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       <div className="max-w-xs truncate">{inquiry.content}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {inquiry.imageUrl ? (
+                        <div className="flex items-center justify-center">
+                          <svg
+                            className="h-5 w-5 text-blue-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -320,6 +341,47 @@ export default function InquiriesPage() {
                       className="w-full px-3 py-2 text-gray-800 bg-gray-50 border border-gray-300 rounded-md resize-none"
                     />
                   </div>
+
+                  {/* 첨부 이미지 */}
+                  {selectedInquiry.imageUrl && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        첨부 이미지
+                      </label>
+                      <div className="border border-gray-300 rounded-md p-2">
+                        <img
+                          src={selectedInquiry.imageUrl}
+                          alt="문의 첨부 이미지"
+                          className="max-w-full h-auto rounded cursor-pointer"
+                          onClick={() => {
+                            // 이미지 확대 보기
+                            const imageWindow = window.open('', '_blank');
+                            if (imageWindow) {
+                              imageWindow.document.write(`
+                                <html>
+                                  <head><title>첨부 이미지</title></head>
+                                  <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background-color:#000;">
+                                    <img src="${selectedInquiry.imageUrl}" 
+                                         style="max-width:100%; max-height:100%; object-fit:contain;" />
+                                  </body>
+                                </html>
+                              `);
+                            }
+                          }}
+                          onError={(e) => {
+                            console.error(
+                              '이미지 로드 실패:',
+                              selectedInquiry.imageUrl
+                            );
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          클릭하여 확대 보기
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* 답변 입력 */}
                   <div>

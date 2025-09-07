@@ -76,7 +76,7 @@ export interface Popup {
   pop_up_id: number;
   title: string;
   content: string;
-  image_url: string;
+  image?: string;
   state: boolean;
   created_at: string;
 }
@@ -86,7 +86,7 @@ export interface Notice {
   notice_id: number;
   title: string;
   content: string;
-  image_url: string;
+  image?: string;
   created_at: string;
 }
 

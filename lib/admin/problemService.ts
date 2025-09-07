@@ -28,7 +28,7 @@ export interface ProblemManagement {
   source?: string;
   exam_year?: string;
   difficulty: 'basic' | 'advanced';
-  image_url?: string;
+  image?: string;
   sequence?: number;
   selects: ProblemSelect[];
   progress_details?: ProblemProgress;
@@ -140,6 +140,92 @@ export async function updateProblem(problemId: number, problem: Partial<ProblemM
   return apiClient.patch<ProblemManagement>(`/admin/problems/managements/${problemId}/`, problem);
 }
 
+// 이미지를 포함한 문제 수정 (multipart/form-data)
+export async function updateProblemWithImage(problemId: number, data: any, imageFile?: File): Promise<ProblemManagement> {
+  const formData = new FormData();
+  
+  // 필드별로 FormData에 추가
+  Object.keys(data).forEach(key => {
+    if (data[key] !== undefined && data[key] !== null) {
+      formData.append(key, data[key].toString());
+    }
+  });
+  
+  // 이미지 파일이 있는 경우 추가
+  if (imageFile) {
+    formData.append('image', imageFile);
+  }
+  
+  const token = localStorage.getItem('admin_token');
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/problems/managements/${problemId}/`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`문제 수정 API 에러:`, response.status, errorText);
+    
+    if (response.status === 401) {
+      localStorage.removeItem('admin_token');
+      window.location.href = '/admin/login';
+      throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+    }
+    
+    throw new Error(`문제 수정 실패: ${response.status} - ${errorText}`);
+  }
+  
+  const result = await response.json();
+  console.log('문제 수정 성공 응답:', result);
+  return result;
+}
+
+// 이미지를 포함한 문제 생성 (multipart/form-data)
+export async function createProblemWithImage(data: any, imageFile?: File): Promise<ProblemManagement> {
+  const formData = new FormData();
+  
+  // 필드별로 FormData에 추가
+  Object.keys(data).forEach(key => {
+    if (data[key] !== undefined && data[key] !== null) {
+      formData.append(key, data[key].toString());
+    }
+  });
+  
+  // 이미지 파일이 있는 경우 추가
+  if (imageFile) {
+    formData.append('image', imageFile);
+  }
+  
+  const token = localStorage.getItem('admin_token');
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/problems/managements/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`문제 생성 API 에러:`, response.status, errorText);
+    
+    if (response.status === 401) {
+      localStorage.removeItem('admin_token');
+      window.location.href = '/admin/login';
+      throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+    }
+    
+    throw new Error(`문제 생성 실패: ${response.status} - ${errorText}`);
+  }
+  
+  const result = await response.json();
+  console.log('문제 생성 성공 응답:', result);
+  return result;
+}
+
 export async function deleteProblem(problemId: number): Promise<void> {
   await apiClient.delete<void>(`/admin/problems/managements/${problemId}/`);
 }
@@ -147,6 +233,21 @@ export async function deleteProblem(problemId: number): Promise<void> {
 // 특정 진도의 문제들 조회
 export async function getProblemsByProgress(progressId: number): Promise<ProblemManagement[]> {
   return apiClient.get<ProblemManagement[]>(`/admin/problems/managements/?progress=${progressId}`);
+}
+
+export async function getNextSequenceNumber(progressId: number): Promise<number> {
+  const problems = await getProblemsByProgress(progressId);
+  const maxSequence = Math.max(...problems.map(p => p.sequence || 0), 0);
+  return maxSequence + 1;
+}
+
+export async function updateProgressTotalProblems(progressId: number): Promise<void> {
+  const problems = await getProblemsByProgress(progressId);
+  const totalProblems = problems.length;
+  
+  await apiClient.patch(`/admin/problems/progresses/${progressId}/`, {
+    total_problems: totalProblems
+  });
 }
 
 // 선택지 관리 API

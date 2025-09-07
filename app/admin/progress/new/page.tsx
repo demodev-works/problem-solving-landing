@@ -69,7 +69,7 @@ export default function NewProgressPage() {
       });
 
       alert('진도가 성공적으로 추가되었습니다.');
-      router.push('/admin/problems');
+      router.push('/problems');
     } catch (error) {
       console.error('진도 추가 실패:', error);
       alert('진도 추가 중 오류가 발생했습니다.');

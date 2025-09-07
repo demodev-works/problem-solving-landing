@@ -4,10 +4,11 @@ console.log('API_BASE_URL:', API_BASE_URL); // 디버깅용
 
 // 인증 헤더 생성 함수
 export function getAuthHeaders() {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
   return {
     'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
+    ...(token && { Authorization: `Bearer ${token}` }),
   };
 }
 
@@ -21,7 +22,7 @@ export class ApiClient {
 
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -35,7 +36,12 @@ export class ApiClient {
       console.error('API 에러 응답:', errorData);
       console.error('응답 상태:', response.status);
       console.error('요청 URL:', url);
-      throw new Error(errorData.detail || errorData.error || JSON.stringify(errorData) || `HTTP Error: ${response.status}`);
+      throw new Error(
+        errorData.detail ||
+          errorData.error ||
+          JSON.stringify(errorData) ||
+          `HTTP Error: ${response.status}`
+      );
     }
 
     // DELETE 요청이나 내용이 없는 응답 처리
@@ -51,7 +57,7 @@ export class ApiClient {
 
     try {
       return JSON.parse(text);
-    } catch (error) {
+    } catch {
       // JSON 파싱 실패 시 빈 객체 반환
       return {} as T;
     }
@@ -61,21 +67,21 @@ export class ApiClient {
     return this.request<T>(endpoint);
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  async put<T>(endpoint: string, data?: any): Promise<T> {
+  async put<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  async patch<T>(endpoint: string, data?: any): Promise<T> {
+  async patch<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
       body: data ? JSON.stringify(data) : undefined,

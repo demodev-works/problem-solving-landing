@@ -7,9 +7,7 @@ import * as XLSX from 'xlsx';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getProgresses,
-  getProblems,
   deleteProgress,
-  uploadProgressData,
   uploadProblemData,
   ProblemProgress,
   ProblemManagement,
@@ -40,12 +38,7 @@ interface Subject {
 }
 
 export default function ProblemsPage() {
-  const {
-    user,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
@@ -178,11 +171,13 @@ export default function ProblemsPage() {
     심화: 'advanced',
   };
 
-  const uploadProgressDataWithMapping = async (data: any[]) => {
+  const uploadProgressDataWithMapping = async (
+    data: Record<string, unknown>[]
+  ) => {
     const subjectsData = await getSubjects();
 
     for (const row of data) {
-      const progressData: any = {};
+      const progressData: Record<string, unknown> = {};
 
       // 진도명 처리
       if (row.진도 && String(row.진도).trim()) {
@@ -215,11 +210,11 @@ export default function ProblemsPage() {
       }
 
       // 필수 필드 검증
-      if (!progressData.name || !progressData.name.trim()) {
+      if (!progressData.name || !String(progressData.name).trim()) {
         continue;
       }
 
-      await createProgress(progressData);
+      await createProgress(progressData as any);
     }
   };
 
@@ -253,7 +248,9 @@ export default function ProblemsPage() {
     reader.readAsArrayBuffer(file);
   };
 
-  const uploadProblemDataWithMapping = async (data: any[]) => {
+  const uploadProblemDataWithMapping = async (
+    data: Record<string, unknown>[]
+  ) => {
     const subjectsData = await getSubjects();
     const progressesData = await getProgresses();
 
@@ -287,7 +284,7 @@ export default function ProblemsPage() {
       }
 
       // 문제 데이터 구성
-      const problemData: any = {
+      const problemData: Record<string, unknown> = {
         progress: progress.progress_id,
         answer: parseInt(String(row.answer || row.정답)),
         explanation: String(row.explanation || row.해설 || ''),
@@ -316,7 +313,7 @@ export default function ProblemsPage() {
 
       // 문제 생성
       try {
-        const createdProblem = await createProblem(problemData);
+        const createdProblem = await createProblem(problemData as any);
 
         // 선택지 생성 - 다양한 컬럼명 지원
         const choices = [
@@ -582,9 +579,7 @@ export default function ProblemsPage() {
               headers={headers}
               data={filteredProblems}
               renderRow={renderRow}
-              onRowClick={(problem) =>
-                router.push(`/admin/problems/${problem.id}`)
-              }
+              onRowClick={(problem) => router.push(`/problems/${problem.id}`)}
             />
           )}
         </div>

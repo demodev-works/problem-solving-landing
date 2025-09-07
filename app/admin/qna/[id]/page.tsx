@@ -11,12 +11,7 @@ import {
 } from '@/lib/admin/qnaService';
 
 export default function QuestionDetailPage() {
-  const {
-    user: authUser,
-    loading: authLoading,
-    isAuthenticated,
-    shouldRender,
-  } = useRequireAuth();
+  const { shouldRender } = useRequireAuth();
   const router = useRouter();
   const params = useParams();
   const questionId = parseInt(params.id as string);
@@ -65,6 +60,9 @@ export default function QuestionDetailPage() {
         state: 'answered',
       });
 
+      // 답변 입력 필드 비우기
+      setAnswer('');
+
       alert('답변이 성공적으로 저장되었습니다.');
     } catch (error) {
       console.error('답변 저장 실패:', error);
@@ -85,7 +83,7 @@ export default function QuestionDetailPage() {
       try {
         await deleteQuestion(question.question_id);
         alert('질문이 삭제되었습니다.');
-        router.push('/admin/qna');
+        router.push('/qna');
       } catch (error) {
         console.error('질문 삭제 실패:', error);
         alert('질문 삭제 중 오류가 발생했습니다.');
@@ -155,10 +153,11 @@ export default function QuestionDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                질문 ID: {question.question_id}
+                {question.title}
               </h1>
               <p className="text-gray-600">
-                생성일: {new Date(question.created_at).toLocaleString('ko-KR')}
+                질문 ID: {question.question_id} | 생성일:{' '}
+                {new Date(question.created_at).toLocaleString('ko-KR')}
               </p>
             </div>
             <div className="flex items-center space-x-3">
@@ -171,19 +170,15 @@ export default function QuestionDetailPage() {
                     : 'bg-gray-100 text-gray-800'
                 }`}
               >
-                {question.state === 'answered'
-                  ? '답변완료'
-                  : question.state === 'pending'
-                  ? '답변대기'
-                  : '종료'}
+                {question.state === 'answered' ? '답변완료' : '답변대기'}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="max-w-4xl mx-auto">
           {/* 메인 컨텐츠 */}
-          <div className="lg:col-span-2">
+          <div>
             <div className="bg-white shadow rounded-lg p-6 mb-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4">
                 문제 정보
@@ -193,7 +188,7 @@ export default function QuestionDetailPage() {
                 <div>
                   <dt className="text-sm font-medium text-gray-500">문제 ID</dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    {question.problem_management}
+                    {question.problem_info.problem_management_id}
                   </dd>
                 </div>
 
@@ -202,9 +197,67 @@ export default function QuestionDetailPage() {
                     문제 내용
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
-                    {question.problem_content || '문제 내용이 없습니다.'}
+                    {question.problem_info.content || '문제 내용이 없습니다.'}
                   </dd>
                 </div>
+
+                {question.problem_info.image && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      문제 이미지
+                    </dt>
+                    <dd className="mt-1">
+                      <img
+                        src={question.problem_info.image}
+                        alt="문제 이미지"
+                        className="max-w-full h-auto rounded-md border border-gray-200"
+                        style={{ maxHeight: '400px' }}
+                        onError={(e) => {
+                          const img = e.target as HTMLImageElement;
+                          img.style.display = 'none';
+                          const errorDiv = document.createElement('div');
+                          errorDiv.className =
+                            'text-sm text-gray-500 p-4 border border-gray-200 rounded-md bg-gray-50';
+                          errorDiv.textContent = '이미지를 불러올 수 없습니다.';
+                          img.parentNode?.appendChild(errorDiv);
+                        }}
+                      />
+                    </dd>
+                  </div>
+                )}
+
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">정답</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {question.problem_info.answer}번
+                  </dd>
+                </div>
+
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">해설</dt>
+                  <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                    {question.problem_info.explanation || '해설이 없습니다.'}
+                  </dd>
+                </div>
+
+                {question.problem_info.selects &&
+                  question.problem_info.selects.length > 0 && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">
+                        선택지
+                      </dt>
+                      <dd className="mt-1 space-y-1">
+                        {question.problem_info.selects.map((select, index) => (
+                          <div key={index} className="text-sm text-gray-900">
+                            <span className="font-medium">
+                              {select.question_number}.
+                            </span>{' '}
+                            {select.content}
+                          </div>
+                        ))}
+                      </dd>
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -217,10 +270,19 @@ export default function QuestionDetailPage() {
               <div className="space-y-4">
                 <div>
                   <dt className="text-sm font-medium text-gray-500">
-                    사용자 ID
+                    사용자 이메일
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 font-mono">
-                    {question.user}
+                    {question.user_email}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">
+                    질문 제목
+                  </dt>
+                  <dd className="mt-1 text-sm text-gray-900 font-medium">
+                    {question.title}
                   </dd>
                 </div>
 
@@ -286,69 +348,6 @@ export default function QuestionDetailPage() {
                     </button>
                   )}
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 사이드바 */}
-          <div className="space-y-6">
-            {/* 상태 정보 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                상태 정보
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">
-                    현재 상태
-                  </dt>
-                  <dd className="mt-1">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        question.state === 'answered'
-                          ? 'bg-green-100 text-green-800'
-                          : question.state === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {question.state === 'answered'
-                        ? '답변완료'
-                        : question.state === 'pending'
-                        ? '답변대기'
-                        : '종료'}
-                    </span>
-                  </dd>
-                </div>
-
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">생성일</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {new Date(question.created_at).toLocaleDateString('ko-KR')}
-                  </dd>
-                </div>
-              </div>
-            </div>
-
-            {/* 관리 작업 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                관리 작업
-              </h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => router.push('/admin/qna')}
-                  className="w-full px-4 py-2 text-sm font-medium bg-gray-600 text-white rounded-md hover:bg-gray-700"
-                >
-                  목록으로 돌아가기
-                </button>
-
-                <button
-                  onClick={handleDeleteQuestion}
-                  className="w-full px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  질문 삭제
-                </button>
               </div>
             </div>
           </div>

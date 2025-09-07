@@ -62,7 +62,7 @@ export default function NewSubjectPage() {
       }
 
       alert('과목이 성공적으로 추가되었습니다.');
-      router.push('/admin/subjects');
+      router.push('/subjects');
     } catch (error) {
       console.error('과목 추가 실패:', error);
       alert('과목 추가 중 오류가 발생했습니다.');
