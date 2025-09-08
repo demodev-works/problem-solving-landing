@@ -128,7 +128,7 @@ export default function NoticesPage() {
           // 이미지가 없으면 기존 updateNotice 사용
           await updateNotice(selectedNotice.notice_id, {
             ...noticeData,
-            image_url: selectedNotice.image,
+            image: selectedNotice.image,
           });
         }
       } else {
@@ -140,7 +140,7 @@ export default function NoticesPage() {
           // 이미지가 없으면 기존 createNotice 사용
           await createNotice({
             ...noticeData,
-            image_url: '',
+            image: '',
           });
         }
       }
