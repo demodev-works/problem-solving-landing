@@ -15,10 +15,10 @@ import { getSubjects } from '@/lib/admin/subjectService';
 import * as XLSX from 'xlsx';
 
 interface ExcelProgressRow {
-  day: any; // 엑셀에서는 숫자, 문자열, null 등 다양한 형태가 될 수 있음
-  난이도: any;
-  과목명: any;
-  진도: any;
+  day: string | number | null; // 엑셀에서는 숫자, 문자열, null 등 다양한 형태가 될 수 있음
+  난이도: string | null;
+  과목명: string | null;
+  진도: string | null;
 }
 
 interface ExcelProblemRow {
@@ -75,7 +75,7 @@ export default function QuestionUploadPage() {
     setSuccess(null);
 
     try {
-      let jsonData: any[];
+      let jsonData: Record<string, unknown>[];
 
       if (file.name.endsWith('.csv')) {
         // CSV 파일 처리
@@ -114,7 +114,7 @@ export default function QuestionUploadPage() {
     const subjects = await getSubjects();
 
     for (const row of data) {
-      const progressData: any = {};
+      const progressData: Record<string, string | number> = {};
 
       // 진도명 처리
       if (row.진도 && String(row.진도).trim()) {
@@ -159,8 +159,8 @@ export default function QuestionUploadPage() {
     const subjects = await getSubjects();
     const progresses = await getProgresses();
 
-    const validProblems: any[] = [];
-    const problemSelectsMap: { [key: number]: any[] } = {};
+    const validProblems: Record<string, unknown>[] = [];
+    const problemSelectsMap: { [key: number]: Record<string, unknown>[] } = {};
 
     // 모든 문제 데이터를 검증하고 배열에 수집
     for (const [index, row] of data.entries()) {
@@ -179,7 +179,7 @@ export default function QuestionUploadPage() {
       }
 
       // 백엔드 API 스펙에 맞춢 문제 생성 데이터 구성
-      const problemData: any = {
+      const problemData: Record<string, unknown> = {
         progress: progress.progress_id,
         answer: parseInt(row.answer.toString()),
         explanation: row.explanation || '',
@@ -234,7 +234,7 @@ export default function QuestionUploadPage() {
       const createdProblems = await bulkCreateProblems(validProblems);
 
       // 생성된 문제들의 선택지를 Bulk로 생성
-      const allSelects: any[] = [];
+      const allSelects: Record<string, unknown>[] = [];
       createdProblems.forEach((problem, index) => {
         if (problemSelectsMap[index]) {
           const selects = problemSelectsMap[index].map((select) => ({

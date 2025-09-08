@@ -148,7 +148,7 @@ export default function ProblemsPage() {
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
         // 수정된 업로드 로직 - upload/page.tsx와 동일한 로직 사용
-        await uploadProgressDataWithMapping(jsonData as any);
+        await uploadProgressDataWithMapping(jsonData as Record<string, unknown>[]);
 
         alert('진도표가 성공적으로 업로드되었습니다.');
 
@@ -214,7 +214,7 @@ export default function ProblemsPage() {
         continue;
       }
 
-      await createProgress(progressData as any);
+      await createProgress(progressData as Omit<ProblemProgress, 'progress_id'>);
     }
   };
 
@@ -232,7 +232,7 @@ export default function ProblemsPage() {
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
         // 수정된 업로드 로직 사용
-        await uploadProblemDataWithMapping(jsonData as any);
+        await uploadProblemDataWithMapping(jsonData as Record<string, unknown>[]);
 
         alert('문제가 성공적으로 업로드되었습니다.');
         // 데이터 새로고침
@@ -253,6 +253,7 @@ export default function ProblemsPage() {
   ) => {
     const subjectsData = await getSubjects();
     const progressesData = await getProgresses();
+    const updatedProgressIds = new Set<number>(); // 업데이트된 진도들을 추적
 
     for (const [index, row] of data.entries()) {
       // 과목명으로 과목 ID 찾기
@@ -290,6 +291,15 @@ export default function ProblemsPage() {
         explanation: String(row.explanation || row.해설 || ''),
       };
 
+      // sequence 필드 처리
+      const sequence = row.sequence || row.순서;
+      if (sequence !== undefined && sequence !== null && sequence !== '') {
+        const sequenceNumber = Number(sequence);
+        if (!isNaN(sequenceNumber)) {
+          problemData.sequence = sequenceNumber;
+        }
+      }
+
       // 선택적 필드들
       const problemContent = row.problem || row.문제 || row.content;
       if (problemContent && String(problemContent).trim()) {
@@ -313,7 +323,8 @@ export default function ProblemsPage() {
 
       // 문제 생성
       try {
-        const createdProblem = await createProblem(problemData as any);
+        const createdProblem = await createProblem(problemData as Omit<ProblemManagement, 'problem_management_id' | 'selects'>);
+        updatedProgressIds.add(progress.progress_id); // 성공적으로 문제가 생성된 진도 추가
 
         // 선택지 생성 - 다양한 컬럼명 지원
         const choices = [
@@ -331,9 +342,32 @@ export default function ProblemsPage() {
             problem_management: createdProblem.problem_management_id,
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`문제 ${index + 1} 생성 실패:`, error.message);
         continue;
+      }
+    }
+
+    // 모든 문제 업로드 완료 후 total_problems 업데이트
+    for (const progressId of updatedProgressIds) {
+      try {
+        const problems = await getProblemsByProgress(progressId);
+        await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/problems/progresses/${progressId}/`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('admin_token')}`,
+            },
+            body: JSON.stringify({ total_problems: problems.length }),
+          }
+        );
+      } catch (error) {
+        console.error(
+          `진도 ${progressId}의 total_problems 업데이트 실패:`,
+          error
+        );
       }
     }
   };
@@ -549,18 +583,22 @@ export default function ProblemsPage() {
               <div className="text-xs text-gray-500">
                 <div className="mb-1">
                   <strong>방법 1:</strong> 과목명, 진도명(또는 진도), 문제,
-                  보기, 정답, 해설, 출처, 시험연도, 난이도(기본/심화)
+                  보기, 정답, 해설, 출처, 시험연도, 난이도(기본/심화), 순서
                 </div>
                 <div>
                   <strong>방법 2:</strong> 과목명, 진도명(또는 진도), 문제,
                   보기1, 보기2, 보기3, 보기4, 보기5, 정답, 해설, 출처, 시험연도,
-                  난이도(기본/심화)
+                  난이도(기본/심화), 순서
                 </div>
                 <div className="mt-1 text-blue-600">
-                  💡 진도명/진도, 보기 컬럼명은 유연하게 인식됩니다
+                  💡 진도명/진도, 보기, 순서/sequence 컬럼명은 유연하게
+                  인식됩니다
                 </div>
                 <div className="text-green-600">
                   ✅ 필수: 과목명, 진도명(또는 진도), 문제, 정답
+                </div>
+                <div className="text-purple-600">
+                  📝 순서 필드를 추가하면 문제 순서를 지정할 수 있습니다
                 </div>
               </div>
             </div>
@@ -579,7 +617,7 @@ export default function ProblemsPage() {
               headers={headers}
               data={filteredProblems}
               renderRow={renderRow}
-              onRowClick={(problem) => router.push(`/problems/${problem.id}`)}
+              onRowClick={(problem) => router.push(`/admin/problems/${problem.id}`)}
             />
           )}
         </div>

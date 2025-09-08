@@ -8,9 +8,9 @@ import DataTable from '@/components/admin/DataTable';
 import {
   getUsers,
   getUserStatistics,
-  activateUser,
-  deactivateUser,
-  deleteUser,
+  // activateUser,
+  // deactivateUser,
+  // deleteUser,
   getPrepareMajors,
   User,
   UserStatistics,

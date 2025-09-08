@@ -161,6 +161,7 @@ export async function updateProblemWithImage(problemId: number, data: any, image
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
+      // Content-Type 헤더는 설정하지 않음 - FormData가 자동으로 multipart/form-data 설정
     },
     body: formData,
   });
@@ -185,28 +186,46 @@ export async function updateProblemWithImage(problemId: number, data: any, image
 
 // 이미지를 포함한 문제 생성 (multipart/form-data)
 export async function createProblemWithImage(data: any, imageFile?: File): Promise<ProblemManagement> {
+  console.log('=== createProblemWithImage 시작 ===');
+  console.log('전송할 데이터:', data);
+  console.log('이미지 파일:', imageFile);
+  
   const formData = new FormData();
   
   // 필드별로 FormData에 추가
   Object.keys(data).forEach(key => {
     if (data[key] !== undefined && data[key] !== null) {
+      console.log(`FormData 추가: ${key} = ${data[key]}`);
       formData.append(key, data[key].toString());
     }
   });
   
   // 이미지 파일이 있는 경우 추가
   if (imageFile) {
+    console.log(`이미지 파일 추가: ${imageFile.name} (${imageFile.size} bytes, ${imageFile.type})`);
     formData.append('image', imageFile);
   }
   
+  // FormData 내용 확인
+  console.log('=== FormData 내용 ===');
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}:`, value);
+  }
+  
   const token = localStorage.getItem('admin_token');
+  console.log('API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/problems/managements/`);
+  
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/problems/managements/`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
+      // Content-Type 헤더는 설정하지 않음 - FormData가 자동으로 multipart/form-data 설정
     },
     body: formData,
   });
+  
+  console.log('응답 상태:', response.status);
+  console.log('응답 헤더:', Object.fromEntries(response.headers.entries()));
   
   if (!response.ok) {
     const errorText = await response.text();
@@ -222,7 +241,8 @@ export async function createProblemWithImage(data: any, imageFile?: File): Promi
   }
   
   const result = await response.json();
-  console.log('문제 생성 성공 응답:', result);
+  console.log('=== 문제 생성 성공 응답 ===');
+  console.log(result);
   return result;
 }
 

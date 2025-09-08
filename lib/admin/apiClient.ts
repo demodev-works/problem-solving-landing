@@ -36,12 +36,16 @@ export class ApiClient {
       console.error('API 에러 응답:', errorData);
       console.error('응답 상태:', response.status);
       console.error('요청 URL:', url);
-      throw new Error(
-        errorData.detail ||
+      
+      // 404 에러를 명확하게 식별하기 위해 상태 코드를 포함한 에러 메시지 생성
+      const errorMessage = response.status === 404 
+        ? `HTTP Error: 404 - ${errorData.detail || 'Not Found'}`
+        : errorData.detail ||
           errorData.error ||
           JSON.stringify(errorData) ||
-          `HTTP Error: ${response.status}`
-      );
+          `HTTP Error: ${response.status}`;
+          
+      throw new Error(errorMessage);
     }
 
     // DELETE 요청이나 내용이 없는 응답 처리

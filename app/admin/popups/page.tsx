@@ -8,9 +8,10 @@ import {
   updatePopup,
   deletePopup,
   togglePopupState,
+  createPopupWithImage,
+  updatePopupWithImage,
 } from '@/lib/admin/popupService';
-import { uploadImage } from '@/lib/admin/uploadService';
-import { getImageUrl, extractImagePath } from '@/lib/admin/imageUtils';
+import { getImageUrl } from '@/lib/admin/imageUtils';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 
 export default function PopupsPage() {
@@ -36,7 +37,7 @@ export default function PopupsPage() {
   const loadPopups = async () => {
     try {
       setLoading(true);
-      const data: any = await getPopups();
+      const data = await getPopups();
 
       console.log('팝업 API 응답:', data); // 응답 구조 확인을 위한 로그
 
@@ -63,10 +64,10 @@ export default function PopupsPage() {
         console.error('예상하지 못한 응답 형식:', data);
         setPopups([]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('팝업 로드 오류:', error);
       setPopups([]); // 에러 시 빈 배열로 설정
-      if (error.message && error.message.includes('로그인이 필요')) {
+      if ((error as Error).message?.includes('로그인이 필요')) {
         alert('로그인이 필요한 서비스입니다.');
         window.location.href = '/login';
       } else {
@@ -112,31 +113,36 @@ export default function PopupsPage() {
     }
 
     try {
-      let imageUrl = selectedPopup?.image || '';
-
-      // 새 이미지가 업로드된 경우
-      if (formData.imageFile) {
-        const uploadedPath = await uploadImage(formData.imageFile);
-        imageUrl = extractImagePath(uploadedPath); // 순수 경로만 저장
-      }
-
       const popupData = {
         title: formData.title,
         content: formData.content,
-        image_url: imageUrl,
         state: formData.state,
       };
 
       if (selectedPopup) {
-        // 수정 - 기존 이미지 URL도 함께 전송
-        const updateData = {
-          ...popupData,
-          oldImageUrl: selectedPopup.image, // 기존 이미지 URL 추가
-        };
-        await updatePopup(selectedPopup.pop_up_id, updateData);
+        // 수정
+        if (formData.imageFile) {
+          // 이미지가 있으면 updatePopupWithImage 사용
+          await updatePopupWithImage(selectedPopup.pop_up_id, popupData, formData.imageFile);
+        } else {
+          // 이미지가 없으면 기존 updatePopup 사용
+          await updatePopup(selectedPopup.pop_up_id, {
+            ...popupData,
+            image_url: selectedPopup.image,
+          });
+        }
       } else {
         // 추가
-        await createPopup(popupData);
+        if (formData.imageFile) {
+          // 이미지가 있으면 createPopupWithImage 사용
+          await createPopupWithImage(popupData, formData.imageFile);
+        } else {
+          // 이미지가 없으면 기존 createPopup 사용
+          await createPopup({
+            ...popupData,
+            image_url: '',
+          });
+        }
       }
 
       await loadPopups(); // 목록 새로고침

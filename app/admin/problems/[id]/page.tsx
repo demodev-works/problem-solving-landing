@@ -10,6 +10,7 @@ import {
   ProblemManagement,
   ProblemProgress,
 } from '@/lib/admin/problemService';
+import { getSubjectById, Subject } from '@/lib/admin/subjectService';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 
 export default function ProgressDetailPage() {
@@ -20,6 +21,7 @@ export default function ProgressDetailPage() {
 
   const [problems, setProblems] = useState<ProblemManagement[]>([]);
   const [progress, setProgress] = useState<ProblemProgress | null>(null);
+  const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +36,13 @@ export default function ProgressDetailPage() {
     try {
       const progressData = await getProgressById(Number(progressId));
       setProgress(progressData);
+      
+      // 과목 정보도 가져오기
+      if (progressData.subject) {
+        const subjectData = await getSubjectById(progressData.subject);
+        setSubject(subjectData);
+      }
+      
       setError(null);
     } catch (error) {
       console.error('진도 정보 로딩 실패:', error);
@@ -45,7 +54,13 @@ export default function ProgressDetailPage() {
     try {
       setLoading(true);
       const problemsData = await getProblemsByProgress(Number(progressId));
-      setProblems(problemsData);
+      // sequence 순서대로 정렬 (null/undefined 값들은 마지막에 배치)
+      const sortedProblems = problemsData.sort((a, b) => {
+        const aSeq = a.sequence || Number.MAX_VALUE;
+        const bSeq = b.sequence || Number.MAX_VALUE;
+        return aSeq - bSeq;
+      });
+      setProblems(sortedProblems);
       setError(null);
     } catch (error) {
       console.error('문제 목록 로딩 실패:', error);
@@ -68,10 +83,13 @@ export default function ProgressDetailPage() {
     }
   };
 
-  const headers = ['문제 내용', '정답', '난이도', '출처', '시험연도', '작업'];
+  const headers = ['순서', '문제 내용', '정답', '난이도', '출처', '시험연도', '작업'];
 
   const renderRow = (problem: ProblemManagement) => (
     <>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+        {problem.sequence || '-'}
+      </td>
       <td className="px-6 py-4 text-sm text-gray-900">
         <div className="max-w-md truncate">{problem.content}</div>
       </td>
@@ -160,7 +178,7 @@ export default function ProgressDetailPage() {
             </h1>
             <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
               <span>
-                과목: {progress?.subject_details?.name || '과목 정보 없음'}
+                과목: {subject?.name || '과목 정보 없음'}
               </span>
               <span>Day {progress?.day}</span>
               <span

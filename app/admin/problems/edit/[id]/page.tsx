@@ -6,6 +6,7 @@ import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getProblemById,
   updateProblem,
+  updateProblemWithImage,
   createProblemSelect,
   deleteProblemSelect,
   ProblemManagement,
@@ -22,7 +23,9 @@ interface Question {
   difficulty: Difficulty;
   source?: string;
   year?: number;
-  image?: string;
+  sequence?: number;
+  image?: File | string;
+  imagePreview?: string;
 }
 
 function EditProblemContent() {
@@ -52,6 +55,19 @@ function EditProblemContent() {
     }
   }, [shouldRender, problemId]);
 
+  // 404 에러 시 자동 리다이렉트를 위한 추가 useEffect
+  useEffect(() => {
+    if (error && error.includes('불러오는데 실패했습니다')) {
+      const timer = setTimeout(() => {
+        router.replace(
+          progressId ? `/admin/problems/${progressId}` : '/admin/problems'
+        );
+      }, 1000); // 1초 후 자동 리다이렉트
+
+      return () => clearTimeout(timer);
+    }
+  }, [error, progressId, router]);
+
   const fetchProblem = async () => {
     try {
       setLoading(true);
@@ -70,19 +86,24 @@ function EditProblemContent() {
         year: problemData.exam_year
           ? new Date(problemData.exam_year).getFullYear()
           : undefined,
+        sequence: problemData.sequence || undefined,
         image: problemData.image || '',
+        imagePreview: problemData.image || undefined,
       });
 
       setError(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('문제 정보 로딩 실패:', error);
 
-      // 404 오류인 경우 (삭제된 문제) 이전 페이지로 이동
-      if (error instanceof Error && error.message.includes('404')) {
+      // 404 오류인 경우 (삭제된 문제) 즉시 리다이렉트
+      if (
+        (error as Error)?.message?.includes('404') ||
+        (error as Error)?.message?.includes('HTTP Error: 404')
+      ) {
         alert(
           '문제를 찾을 수 없습니다. 삭제되었거나 존재하지 않는 문제입니다.'
         );
-        router.push(
+        router.replace(
           progressId ? `/admin/problems/${progressId}` : '/admin/problems'
         );
         return;
@@ -94,7 +115,7 @@ function EditProblemContent() {
     }
   };
 
-  const handleQuestionChange = (field: keyof Question, value: any) => {
+  const handleQuestionChange = (field: keyof Question, value: string | number | File | undefined) => {
     setQuestion((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -132,11 +153,9 @@ function EditProblemContent() {
   };
 
   const handleImageUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      handleQuestionChange('image', reader.result);
-    };
-    reader.readAsDataURL(file);
+    // 파일 객체를 직접 저장하여 나중에 FormData로 전송
+    handleQuestionChange('image', file);
+    handleQuestionChange('imagePreview', URL.createObjectURL(file));
   };
 
   const handleSubmit = async () => {
@@ -145,7 +164,7 @@ function EditProblemContent() {
     setSaving(true);
     try {
       // 문제 업데이트 - PATCH 방식으로 필요한 필드들만 전송
-      const problemData: any = {
+      const problemData: Record<string, string | number> = {
         answer: parseInt(question.answer),
         explanation: question.explanation ? question.explanation.trim() : '',
       };
@@ -167,11 +186,20 @@ function EditProblemContent() {
         problemData.exam_year = `${question.year}-01-01`;
       }
 
-      // 이미지는 새로 업로드된 파일이 있을 때만 처리
-      // 기존 이미지 URL은 보내지 않음
+      if (question.sequence && question.sequence > 0) {
+        problemData.sequence = question.sequence;
+      }
 
-      console.log('PATCH로 보내는 데이터:', problemData);
-      await updateProblem(problem.problem_management_id, problemData);
+      // 이미지가 있으면 updateProblemWithImage, 없으면 updateProblem 사용
+      if (question.image && question.image instanceof File) {
+        await updateProblemWithImage(
+          problem.problem_management_id,
+          problemData,
+          question.image
+        );
+      } else {
+        await updateProblem(problem.problem_management_id, problemData);
+      }
 
       // 기존 선택지 삭제 후 새로 생성
       for (const select of problem.selects) {
@@ -256,6 +284,11 @@ function EditProblemContent() {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
             <p className="text-red-600">{error}</p>
+            {error.includes('불러오는데 실패했습니다') && (
+              <p className="text-gray-600 text-sm mt-2">
+                잠시 후 문제 목록으로 자동 이동됩니다...
+              </p>
+            )}
           </div>
         )}
 
@@ -277,15 +310,24 @@ function EditProblemContent() {
 
               {/* 이미지 업로드 */}
               <div className="mt-2">
-                {question.image && (
+                {(question.imagePreview ||
+                  (question.image && typeof question.image === 'string')) && (
                   <div className="mb-2">
                     <img
-                      src={question.image}
+                      src={
+                        question.imagePreview ||
+                        (typeof question.image === 'string'
+                          ? question.image
+                          : '')
+                      }
                       alt="문제 이미지"
                       className="max-w-md h-auto border rounded"
                     />
                     <button
-                      onClick={() => handleQuestionChange('image', undefined)}
+                      onClick={() => {
+                        handleQuestionChange('image', undefined);
+                        handleQuestionChange('imagePreview', undefined);
+                      }}
                       className="mt-1 text-sm text-red-600 hover:text-red-800"
                     >
                       이미지 삭제
@@ -395,7 +437,25 @@ function EditProblemContent() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  순서 (선택사항)
+                </label>
+                <input
+                  type="number"
+                  value={question.sequence || ''}
+                  onChange={(e) =>
+                    handleQuestionChange(
+                      'sequence',
+                      e.target.value ? parseInt(e.target.value) : undefined
+                    )
+                  }
+                  placeholder="순서를 입력하세요"
+                  min="1"
+                  className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   출처 (선택사항)

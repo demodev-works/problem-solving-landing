@@ -44,12 +44,15 @@ export async function createPopupWithImage(
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
+      // Content-Type 헤더는 설정하지 않음 - FormData가 자동으로 multipart/form-data 설정
     },
     body: formData,
   });
   
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const errorText = await response.text();
+    console.error(`팝업 생성 API 에러:`, response.status, errorText);
+    throw new Error(`팝업 생성 실패: ${response.status}`);
   }
   
   return response.json();
@@ -66,7 +69,7 @@ export async function updatePopup(
 // 이미지를 포함한 팝업 수정 (multipart/form-data)
 export async function updatePopupWithImage(
   id: number,
-  data: { title: string; content: string; state: boolean; image?: any },
+  data: { title: string; content: string; state: boolean },
   imageFile?: File
 ): Promise<PopupWithImage> {
   const formData = new FormData();
@@ -76,9 +79,6 @@ export async function updatePopupWithImage(
   
   if (imageFile) {
     formData.append('image', imageFile);
-  } else if (data.image === null) {
-    // 이미지 삭제 시 null 전송
-    formData.append('image', '');
   }
   
   const token = localStorage.getItem('admin_token');
@@ -86,12 +86,15 @@ export async function updatePopupWithImage(
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
+      // Content-Type 헤더는 설정하지 않음 - FormData가 자동으로 multipart/form-data 설정
     },
     body: formData,
   });
   
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const errorText = await response.text();
+    console.error(`팝업 수정 API 에러:`, response.status, errorText);
+    throw new Error(`팝업 수정 실패: ${response.status}`);
   }
   
   return response.json();

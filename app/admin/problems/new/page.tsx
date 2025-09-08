@@ -6,7 +6,10 @@ import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getProgresses,
   createProblem,
+  createProblemWithImage,
   createProblemSelect,
+  updateProgressTotalProblems,
+  getProblemsByProgress,
   ProblemProgress,
 } from '@/lib/admin/problemService';
 import { getSubjects, Subject } from '@/lib/admin/subjectService';
@@ -22,7 +25,9 @@ interface Question {
   difficulty: Difficulty;
   source?: string;
   year?: number;
-  image?: string;
+  sequence?: number;
+  image?: File | string;
+  imagePreview?: string;
 }
 
 function NewProblemContent() {
@@ -39,6 +44,7 @@ function NewProblemContent() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentProblemCount, setCurrentProblemCount] = useState(0);
 
   // 선택된 과목에 따라 진도명 필터링
   const filteredProgressOptions = progressOptions.filter((progress) => {
@@ -66,7 +72,7 @@ function NewProblemContent() {
       );
       if (selectedProgress) {
         const selectedSubject = subjects.find(
-          (s) => s.subject_id === selectedProgress.subject_details?.subject_id
+          (s) => s.subject_id === selectedProgress.subject
         );
         if (selectedSubject) {
           setFormData({
@@ -74,6 +80,9 @@ function NewProblemContent() {
             progress: selectedProgress.name,
             progressId: preselectedProgressId,
           });
+          
+          // 미리 선택된 진도의 문제 개수 가져오기
+          fetchCurrentProblemCount(preselectedProgressId);
         }
       }
     }
@@ -100,6 +109,25 @@ function NewProblemContent() {
       setError('과목 목록을 불러오는데 실패했습니다.');
     }
   };
+
+  const fetchCurrentProblemCount = async (progressId: string) => {
+    try {
+      const problems = await getProblemsByProgress(parseInt(progressId));
+      const count = problems.length;
+      setCurrentProblemCount(count);
+      
+      // 첫 번째 문제의 sequence도 업데이트
+      setQuestions(prevQuestions => 
+        prevQuestions.map((q, index) => ({
+          ...q,
+          sequence: count + index + 1
+        }))
+      );
+    } catch (error) {
+      console.error('문제 개수 조회 실패:', error);
+      setCurrentProblemCount(0);
+    }
+  };
   const [questions, setQuestions] = useState<Question[]>([
     {
       id: 1,
@@ -108,6 +136,7 @@ function NewProblemContent() {
       answer: '',
       explanation: '',
       difficulty: 'basic',
+      sequence: 1,
     },
   ]);
 
@@ -116,6 +145,7 @@ function NewProblemContent() {
       ...questions,
       {
         id: Math.max(...questions.map((q) => q.id)) + 1,
+        sequence: currentProblemCount + questions.length + 1,
         question: '',
         options: ['', '', '', ''],
         answer: '',
@@ -134,11 +164,18 @@ function NewProblemContent() {
   const handleQuestionChange = (
     id: number,
     field: keyof Question,
-    value: any
+    value: string | number | File | undefined
   ) => {
-    setQuestions(
-      questions.map((q) => (q.id === id ? { ...q, [field]: value } : q))
-    );
+    setQuestions(prevQuestions => {
+      const newQuestions = prevQuestions.map((q) => {
+        if (q.id === id) {
+          return { ...q, [field]: value };
+        }
+        return q;
+      });
+      
+      return newQuestions;
+    });
   };
 
   const handleOptionChange = (
@@ -190,12 +227,9 @@ function NewProblemContent() {
   };
 
   const handleImageUpload = (questionId: number, file: File) => {
-    // TODO: 실제 이미지 업로드 로직 구현
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      handleQuestionChange(questionId, 'image', reader.result);
-    };
-    reader.readAsDataURL(file);
+    // 파일 객체를 직접 저장하여 나중에 FormData로 전송
+    handleQuestionChange(questionId, 'image', file);
+    handleQuestionChange(questionId, 'imagePreview', URL.createObjectURL(file));
   };
 
   const handleSubmit = async () => {
@@ -203,14 +237,20 @@ function NewProblemContent() {
 
     setLoading(true);
     try {
-      for (const question of questions) {
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        
+        // sequence 값 사용 (이제 필수이므로 무조건 존재함)
+        const sequenceValue = question.sequence!;
+        
         // 문제 생성 - 백엔드 필드명에 맞게 수정
-        const problemData: any = {
+        const problemData: Record<string, string | number> = {
           progress: parseInt(formData.progressId),
           content: question.question.trim(),
           answer: parseInt(question.answer),
-          explanation: question.explanation ? question.explanation.trim() : '', // 필수 필드
+          explanation: question.explanation ? question.explanation.trim() : '',
           difficulty: question.difficulty,
+          sequence: sequenceValue,
         };
 
         if (question.source && question.source.trim()) {
@@ -218,26 +258,31 @@ function NewProblemContent() {
         }
 
         if (question.year) {
-          // exam_year를 날짜 형식으로 변환 (YYYY-01-01)
           problemData.exam_year = `${question.year}-01-01`;
         }
 
-        if (question.image && question.image.trim()) {
-          problemData.image_url = question.image.trim();
+        let createdProblem;
+        
+        // 이미지가 있으면 createProblemWithImage, 없으면 createProblem 사용
+        if (question.image && question.image instanceof File) {
+          createdProblem = await createProblemWithImage(problemData, question.image);
+        } else {
+          createdProblem = await createProblem(problemData);
         }
-
-        const createdProblem = await createProblem(problemData);
 
         // 선택지 생성
         const validOptions = question.options.filter((opt) => opt.trim());
-        for (let i = 0; i < validOptions.length; i++) {
+        for (let j = 0; j < validOptions.length; j++) {
           await createProblemSelect({
-            question_number: i + 1,
-            content: validOptions[i],
+            question_number: j + 1,
+            content: validOptions[j],
             problem_management: createdProblem.problem_management_id,
           });
         }
       }
+
+      // problem_progress 테이블의 total_problems 업데이트
+      await updateProgressTotalProblems(parseInt(formData.progressId));
 
       alert(`${questions.length}개의 문제가 성공적으로 저장되었습니다.`);
       router.push(`/admin/problems/${formData.progressId}`);
@@ -260,6 +305,7 @@ function NewProblemContent() {
           q.answer && // answer 필수
           q.explanation &&
           q.explanation.trim() && // explanation 필수
+          q.sequence && q.sequence > 0 && // sequence 필수
           q.options.filter((opt) => opt.trim()).length >= 2 &&
           q.options
             .slice(0, q.options.filter((opt) => opt.trim()).length)
@@ -356,6 +402,20 @@ function NewProblemContent() {
                     progressId: e.target.value,
                     progress: selectedProgress?.name || '',
                   });
+                  
+                  // 선택된 진도의 문제 개수 가져오기
+                  if (e.target.value) {
+                    fetchCurrentProblemCount(e.target.value);
+                  } else {
+                    setCurrentProblemCount(0);
+                    // 진도가 선택되지 않았을 때 sequence 초기화
+                    setQuestions(prevQuestions => 
+                      prevQuestions.map((q, index) => ({
+                        ...q,
+                        sequence: index + 1
+                      }))
+                    );
+                  }
                 }}
                 disabled={!formData.subject}
                 className="block w-full pl-3 pr-10 py-2 text-base text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -424,21 +484,18 @@ function NewProblemContent() {
 
                   {/* 이미지 업로드 */}
                   <div className="mt-2">
-                    {question.image && (
+                    {question.imagePreview && (
                       <div className="mb-2">
                         <img
-                          src={question.image}
+                          src={question.imagePreview}
                           alt="문제 이미지"
                           className="max-w-md h-auto border rounded"
                         />
                         <button
-                          onClick={() =>
-                            handleQuestionChange(
-                              question.id,
-                              'image',
-                              undefined
-                            )
-                          }
+                          onClick={() => {
+                            handleQuestionChange(question.id, 'image', undefined);
+                            handleQuestionChange(question.id, 'imagePreview', undefined);
+                          }}
                           className="mt-1 text-sm text-red-600 hover:text-red-800"
                         >
                           이미지 삭제
@@ -561,7 +618,7 @@ function NewProblemContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       출처 (선택사항)
@@ -597,6 +654,25 @@ function NewProblemContent() {
                       placeholder="예: 2023"
                       min="2000"
                       max="2099"
+                      className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      순서 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={question.sequence || ''}
+                      onChange={(e) =>
+                        handleQuestionChange(
+                          question.id,
+                          'sequence',
+                          e.target.value ? parseInt(e.target.value) : undefined
+                        )
+                      }
+                      placeholder={currentProblemCount > 0 ? `${currentProblemCount + 1}` : '1'}
+                      min="1"
                       className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>

@@ -6,10 +6,11 @@ import {
   createNotice,
   updateNotice,
   deleteNotice,
+  createNoticeWithImage,
+  updateNoticeWithImage,
   NoticeWithImageUrl,
 } from '@/lib/admin/noticeService';
-import { uploadImage } from '@/lib/admin/uploadService';
-import { getImageUrl, extractImagePath } from '@/lib/admin/imageUtils';
+import { getImageUrl } from '@/lib/admin/imageUtils';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 
 export default function NoticesPage() {
@@ -40,7 +41,7 @@ export default function NoticesPage() {
       console.log('공지사항 API 응답:', data); // 응답 구조 확인을 위한 로그
       console.log(
         '첫 번째 공지사항 구조:',
-        (data as any).results?.[0] || data[0]
+        (data as { results?: NoticeWithImageUrl[] }).results?.[0] || (data as NoticeWithImageUrl[])[0]
       ); // 첫 번째 항목의 구조 확인
 
       // 응답이 배열인지 확인하고, 배열이 아니면 적절한 처리
@@ -48,26 +49,28 @@ export default function NoticesPage() {
         setNotices(data);
       } else if (
         data &&
-        (data as any).results &&
-        Array.isArray((data as any).results)
+        typeof data === 'object' &&
+        'results' in data &&
+        Array.isArray((data as { results: NoticeWithImageUrl[] }).results)
       ) {
         // Django REST framework의 페이지네이션 응답 처리
-        setNotices((data as any).results);
+        setNotices((data as { results: NoticeWithImageUrl[] }).results);
       } else if (
         data &&
-        (data as any).data &&
-        Array.isArray((data as any).data)
+        typeof data === 'object' &&
+        'data' in data &&
+        Array.isArray((data as { data: NoticeWithImageUrl[] }).data)
       ) {
         // 다른 형식의 응답 처리
-        setNotices((data as any).data);
+        setNotices((data as { data: NoticeWithImageUrl[] }).data);
       } else {
         console.error('예상하지 못한 응답 형식:', data);
         setNotices([]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('공지사항 로드 오류:', error);
       setNotices([]); // 에러 시 빈 배열로 설정
-      if (error.message.includes('로그인이 필요')) {
+      if ((error as Error).message?.includes('로그인이 필요')) {
         alert('로그인이 필요한 서비스입니다.');
         window.location.href = '/login';
       } else {
@@ -111,30 +114,35 @@ export default function NoticesPage() {
     }
 
     try {
-      let imageUrl = selectedNotice?.image_url || '';
-
-      // 새 이미지가 업로드된 경우
-      if (formData.imageFile) {
-        const uploadedPath = await uploadImage(formData.imageFile);
-        imageUrl = extractImagePath(uploadedPath); // 순수 경로만 저장
-      }
-
       const noticeData = {
         title: formData.title,
         content: formData.content,
-        image_url: imageUrl,
       };
 
       if (selectedNotice) {
-        // 수정 - 기존 이미지 URL도 함께 전송
-        const updateData = {
-          ...noticeData,
-          oldImageUrl: selectedNotice.image_url, // 기존 이미지 URL 추가
-        };
-        await updateNotice(selectedNotice.notice_id, updateData);
+        // 수정
+        if (formData.imageFile) {
+          // 이미지가 있으면 updateNoticeWithImage 사용
+          await updateNoticeWithImage(selectedNotice.notice_id, noticeData, formData.imageFile);
+        } else {
+          // 이미지가 없으면 기존 updateNotice 사용
+          await updateNotice(selectedNotice.notice_id, {
+            ...noticeData,
+            image_url: selectedNotice.image,
+          });
+        }
       } else {
         // 추가
-        await createNotice(noticeData);
+        if (formData.imageFile) {
+          // 이미지가 있으면 createNoticeWithImage 사용
+          await createNoticeWithImage(noticeData, formData.imageFile);
+        } else {
+          // 이미지가 없으면 기존 createNotice 사용
+          await createNotice({
+            ...noticeData,
+            image_url: '',
+          });
+        }
       }
 
       await loadNotices(); // 목록 새로고침
@@ -232,15 +240,15 @@ export default function NoticesPage() {
                   <tr key={notice.notice_id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="w-20 h-20 rounded-lg bg-gray-100">
-                        {notice.image_url && (
+                        {notice.image && (
                           <img
-                            src={getImageUrl(notice.image_url) || ''}
+                            src={getImageUrl(notice.image) || ''}
                             alt={notice.title}
                             className="w-full h-full object-cover rounded-lg"
                             onError={(e) => {
                               console.error(
                                 '이미지 로드 실패:',
-                                notice.image_url
+                                notice.image
                               );
                               e.currentTarget.style.display = 'none';
                             }}
