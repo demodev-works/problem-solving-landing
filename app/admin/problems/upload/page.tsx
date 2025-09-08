@@ -10,6 +10,9 @@ import {
   bulkCreateProblems,
   bulkCreateProblemSelects,
   getProgresses,
+  ProblemProgress,
+  ProblemManagement,
+  ProblemSelect,
 } from '@/lib/admin/problemService';
 import { getSubjects } from '@/lib/admin/subjectService';
 import * as XLSX from 'xlsx';
@@ -92,9 +95,9 @@ export default function QuestionUploadPage() {
       }
 
       if (uploadType === 'progress') {
-        await uploadProgressData(jsonData as ExcelProgressRow[]);
+        await uploadProgressData(jsonData as unknown as ExcelProgressRow[]);
       } else {
-        await uploadProblemData(jsonData as ExcelProblemRow[]);
+        await uploadProblemData(jsonData as unknown as ExcelProblemRow[]);
       }
 
       setSuccess(
@@ -147,11 +150,11 @@ export default function QuestionUploadPage() {
       }
 
       // 필수 필드 검증
-      if (!progressData.name || !progressData.name.trim()) {
+      if (!progressData.name || typeof progressData.name !== 'string' || !progressData.name.trim()) {
         continue;
       }
 
-      await createProgress(progressData);
+      await createProgress(progressData as unknown as Omit<ProblemProgress, "progress_id">);
     }
   };
 
@@ -231,7 +234,7 @@ export default function QuestionUploadPage() {
 
     // Bulk로 모든 문제 생성
     if (validProblems.length > 0) {
-      const createdProblems = await bulkCreateProblems(validProblems);
+      const createdProblems = await bulkCreateProblems(validProblems as unknown as Omit<ProblemManagement, "progress_details" | "problem_management_id" | "selects">[]);
 
       // 생성된 문제들의 선택지를 Bulk로 생성
       const allSelects: Record<string, unknown>[] = [];
@@ -247,7 +250,7 @@ export default function QuestionUploadPage() {
       });
 
       if (allSelects.length > 0) {
-        await bulkCreateProblemSelects(allSelects);
+        await bulkCreateProblemSelects(allSelects as unknown as Omit<ProblemSelect, "problem_select_id">[]);
       }
     }
   };

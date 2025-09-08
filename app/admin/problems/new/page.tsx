@@ -11,6 +11,7 @@ import {
   updateProgressTotalProblems,
   getProblemsByProgress,
   ProblemProgress,
+  ProblemManagement,
 } from '@/lib/admin/problemService';
 import { getSubjects, Subject } from '@/lib/admin/subjectService';
 
@@ -244,7 +245,7 @@ function NewProblemContent() {
         const sequenceValue = question.sequence!;
         
         // 문제 생성 - 백엔드 필드명에 맞게 수정
-        const problemData: Record<string, string | number> = {
+        const problemData: Omit<ProblemManagement, 'problem_management_id' | 'selects' | 'progress_details'> = {
           progress: parseInt(formData.progressId),
           content: question.question.trim(),
           answer: parseInt(question.answer),

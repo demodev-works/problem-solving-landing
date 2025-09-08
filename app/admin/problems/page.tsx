@@ -10,7 +10,7 @@ import {
   deleteProgress,
   // uploadProblemData,
   ProblemProgress,
-  // ProblemManagement,
+  ProblemManagement,
   createProgress,
   createProblem,
   createProblemSelect,
@@ -323,7 +323,7 @@ export default function ProblemsPage() {
 
       // 문제 생성
       try {
-        const createdProblem = await createProblem(problemData as Omit<ProblemManagement, 'problem_management_id' | 'selects'>);
+        const createdProblem = await createProblem(problemData as Omit<ProblemManagement, 'problem_management_id' | 'selects' | 'progress_details'>);
         updatedProgressIds.add(progress.progress_id); // 성공적으로 문제가 생성된 진도 추가
 
         // 선택지 생성 - 다양한 컬럼명 지원
@@ -343,7 +343,7 @@ export default function ProblemsPage() {
           });
         }
       } catch (error: unknown) {
-        console.error(`문제 ${index + 1} 생성 실패:`, error.message);
+        console.error(`문제 ${index + 1} 생성 실패:`, (error as Error).message);
         continue;
       }
     }

@@ -37,7 +37,7 @@ export default function PopupsPage() {
   const loadPopups = async () => {
     try {
       setLoading(true);
-      const data = await getPopups();
+      const data: unknown = await getPopups();
 
       console.log('팝업 API 응답:', data); // 응답 구조 확인을 위한 로그
 
@@ -48,18 +48,18 @@ export default function PopupsPage() {
         data &&
         typeof data === 'object' &&
         'results' in data &&
-        Array.isArray(data.results)
+        Array.isArray((data as { results: unknown }).results)
       ) {
         // Django REST framework의 페이지네이션 응답 처리
-        setPopups(data.results);
+        setPopups((data as { results: Popup[] }).results);
       } else if (
         data &&
         typeof data === 'object' &&
         'data' in data &&
-        Array.isArray(data.data)
+        Array.isArray((data as { data: unknown }).data)
       ) {
         // 다른 형식의 응답 처리
-        setPopups(data.data);
+        setPopups((data as { data: Popup[] }).data);
       } else {
         console.error('예상하지 못한 응답 형식:', data);
         setPopups([]);
@@ -128,7 +128,7 @@ export default function PopupsPage() {
           // 이미지가 없으면 기존 updatePopup 사용
           await updatePopup(selectedPopup.pop_up_id, {
             ...popupData,
-            image_url: selectedPopup.image,
+            image: selectedPopup.image,
           });
         }
       } else {
@@ -140,7 +140,7 @@ export default function PopupsPage() {
           // 이미지가 없으면 기존 createPopup 사용
           await createPopup({
             ...popupData,
-            image_url: '',
+            image: '',
           });
         }
       }
