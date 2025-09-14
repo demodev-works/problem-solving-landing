@@ -71,12 +71,12 @@ export interface Qna {
   updatedAt: string;
 }
 
-// 팝업 타입 (Supabase 테이블 구조에 맞게 수정)
+// 팝업 타입 (업데이트된 API 구조에 맞게 수정)
 export interface Popup {
   pop_up_id: number;
   title: string;
-  content: string;
   image?: string;
+  action_url?: string;
   state: boolean;
   created_at: string;
 }

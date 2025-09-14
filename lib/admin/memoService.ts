@@ -6,6 +6,7 @@ export interface MemoProgress {
   name: string | null;
   day: number | null;
   difficulty: 'basic' | 'advanced' | null;
+  total_problems: number;
 }
 
 // 메모 문제 데이터 인터페이스

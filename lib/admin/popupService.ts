@@ -27,12 +27,14 @@ export async function createPopup(
 
 // 이미지를 포함한 팝업 생성 (multipart/form-data)
 export async function createPopupWithImage(
-  data: { title: string; content: string; state: boolean },
+  data: { title: string; action_url?: string; state: boolean },
   imageFile?: File
 ): Promise<PopupWithImage> {
   const formData = new FormData();
   formData.append('title', data.title);
-  formData.append('content', data.content);
+  if (data.action_url) {
+    formData.append('action_url', data.action_url);
+  }
   formData.append('state', data.state.toString());
   
   if (imageFile) {
@@ -69,12 +71,14 @@ export async function updatePopup(
 // 이미지를 포함한 팝업 수정 (multipart/form-data)
 export async function updatePopupWithImage(
   id: number,
-  data: { title: string; content: string; state: boolean },
+  data: { title: string; action_url?: string; state: boolean },
   imageFile?: File
 ): Promise<PopupWithImage> {
   const formData = new FormData();
   formData.append('title', data.title);
-  formData.append('content', data.content);
+  if (data.action_url) {
+    formData.append('action_url', data.action_url);
+  }
   formData.append('state', data.state.toString());
   
   if (imageFile) {

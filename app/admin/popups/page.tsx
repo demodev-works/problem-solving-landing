@@ -22,7 +22,7 @@ export default function PopupsPage() {
   const [selectedPopup, setSelectedPopup] = useState<Popup | null>(null);
   const [formData, setFormData] = useState({
     title: '',
-    content: '',
+    action_url: '',
     imageFile: null as File | null,
     state: true,
   });
@@ -87,7 +87,7 @@ export default function PopupsPage() {
   const handleAddPopup = () => {
     setFormData({
       title: '',
-      content: '',
+      action_url: '',
       imageFile: null,
       state: true,
     });
@@ -98,7 +98,7 @@ export default function PopupsPage() {
   const handleEditPopup = (popup: Popup) => {
     setFormData({
       title: popup.title,
-      content: popup.content,
+      action_url: popup.action_url || '',
       imageFile: null,
       state: popup.state,
     });
@@ -107,15 +107,15 @@ export default function PopupsPage() {
   };
 
   const handleSavePopup = async () => {
-    if (!formData.title || !formData.content) {
-      alert('제목과 내용을 모두 입력해주세요.');
+    if (!formData.title) {
+      alert('제목을 입력해주세요.');
       return;
     }
 
     try {
       const popupData = {
         title: formData.title,
-        content: formData.content,
+        action_url: formData.action_url,
         state: formData.state,
       };
 
@@ -231,7 +231,7 @@ export default function PopupsPage() {
                   제목
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  내용
+                  연결 URL
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   상태
@@ -267,7 +267,7 @@ export default function PopupsPage() {
                       {popup.title}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                      {popup.content}
+                      {popup.action_url || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
@@ -347,15 +347,15 @@ export default function PopupsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    팝업 내용 *
+                    연결 URL (선택사항)
                   </label>
-                  <textarea
-                    value={formData.content}
+                  <input
+                    type="text"
+                    value={formData.action_url}
                     onChange={(e) =>
-                      setFormData({ ...formData, content: e.target.value })
+                      setFormData({ ...formData, action_url: e.target.value })
                     }
-                    placeholder="팝업 내용을 입력하세요"
-                    rows={4}
+                    placeholder="클릭 시 이동할 URL을 입력하세요"
                     className="w-full px-3 py-2 text-gray-800 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>

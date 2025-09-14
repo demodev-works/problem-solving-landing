@@ -54,45 +54,17 @@ export default function MemorizationPage() {
       // 1. 암기 진도 목록 가져오기
       const progressesData = await getMemoProgresses();
 
-      // 2. 유효한 진도 데이터만 필터링
+      // 2. 유효한 진도 데이터만 필터링하고 Display 형태로 변환
       const validProgresses = progressesData.filter(
         (progress) => progress.name && progress.name.trim()
       );
 
-      // 3. 각 진도별 문제 수 조회
-      const progressProblemsPromises = validProgresses.map(
-        async (progress: MemoProgress) => {
-          try {
-            const problems = await getMemoProblemDataByProgress(
-              progress.memo_progress_id
-            );
-            return {
-              progressId: progress.memo_progress_id,
-              count: problems.length,
-            };
-          } catch (error) {
-            console.error(
-              `암기 진도 ${progress.memo_progress_id} 문제 수 조회 실패:`,
-              error
-            );
-            return { progressId: progress.memo_progress_id, count: 0 };
-          }
-        }
-      );
-
-      const progressProblemsData = await Promise.all(progressProblemsPromises);
-      const progressProblemsMap = progressProblemsData.reduce((acc, item) => {
-        acc[item.progressId] = item.count;
-        return acc;
-      }, {} as { [key: number]: number });
-
-      // 4. 진도 데이터를 Display 형태로 변환
       const formattedProgresses: MemoProgressDisplay[] = validProgresses.map(
         (progress: MemoProgress) => {
           return {
             id: progress.memo_progress_id,
             name: progress.name || '진도명 없음',
-            questionCount: progressProblemsMap[progress.memo_progress_id] || 0,
+            questionCount: progress.total_problems || 0,
             day: progress.day ? progress.day.toString() : '-',
             difficulty: progress.difficulty === 'advanced' ? '심화' : '기본',
           };
