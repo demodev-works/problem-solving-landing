@@ -218,10 +218,11 @@ export interface MemoProblemUploadData {
 }
 
 // 엑셀/CSV 업로드 함수들
-export async function uploadMemoProgressData(progressList: MemoProgressUploadData[]): Promise<any> {
+export async function uploadMemoProgressData(progressList: MemoProgressUploadData[]): Promise<unknown> {
   const results = [];
   for (const progressData of progressList) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await createMemoProgress(progressData as any);
       results.push(result);
     } catch (error) {
@@ -232,10 +233,11 @@ export async function uploadMemoProgressData(progressList: MemoProgressUploadDat
   return { success: true, data: results };
 }
 
-export async function uploadMemoProblemData(problems: MemoProblemUploadData[]): Promise<any> {
+export async function uploadMemoProblemData(problems: MemoProblemUploadData[]): Promise<unknown> {
   const results = [];
   for (const problemData of problems) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await createMemoProblemData(problemData as any);
       results.push(result);
     } catch (error) {

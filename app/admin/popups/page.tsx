@@ -152,7 +152,14 @@ export default function PopupsPage() {
       );
     } catch (error) {
       console.error('팝업 저장 오류:', error);
-      alert('팝업 저장에 실패했습니다.');
+      
+      // 에러 메시지에서 URL 관련 에러인지 확인
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('action_url') || errorMessage.includes('URL')) {
+        alert('연결 URL 형식이 올바르지 않습니다. 앱 내부 페이지는 /로 시작하고, 외부 링크는 https://로 시작해야 합니다.');
+      } else {
+        alert('팝업 저장에 실패했습니다. 입력 정보를 확인해주세요.');
+      }
     }
   };
 
@@ -355,9 +362,12 @@ export default function PopupsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, action_url: e.target.value })
                     }
-                    placeholder="클릭 시 이동할 URL을 입력하세요"
+                    placeholder="예: /mypage 또는 https://example.com"
                     className="w-full px-3 py-2 text-gray-800 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    앱 내부 페이지: /mypage, /settings 등 | 외부 링크: https://로 시작
+                  </p>
                 </div>
 
                 <div>

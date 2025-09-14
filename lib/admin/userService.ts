@@ -163,7 +163,7 @@ export async function updateUser(userId: string, userData: Partial<User> & { pre
   return apiClient.put<User>(`/admin/users/users/${userId}/`, userData);
 }
 
-export async function patchUser(userId: string, userData: any): Promise<User> {
+export async function patchUser(userId: string, userData: Record<string, unknown>): Promise<User> {
   return apiClient.patch<User>(`/admin/users/users/${userId}/`, userData);
 }
 

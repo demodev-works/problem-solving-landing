@@ -141,7 +141,7 @@ export async function updateProblem(problemId: number, problem: Partial<ProblemM
 }
 
 // 이미지를 포함한 문제 수정 (multipart/form-data)
-export async function updateProblemWithImage(problemId: number, data: any, imageFile?: File): Promise<ProblemManagement> {
+export async function updateProblemWithImage(problemId: number, data: Record<string, unknown>, imageFile?: File): Promise<ProblemManagement> {
   const formData = new FormData();
   
   // 필드별로 FormData에 추가
@@ -185,7 +185,7 @@ export async function updateProblemWithImage(problemId: number, data: any, image
 }
 
 // 이미지를 포함한 문제 생성 (multipart/form-data)
-export async function createProblemWithImage(data: any, imageFile?: File): Promise<ProblemManagement> {
+export async function createProblemWithImage(data: Record<string, unknown>, imageFile?: File): Promise<ProblemManagement> {
   console.log('=== createProblemWithImage 시작 ===');
   console.log('전송할 데이터:', data);
   console.log('이미지 파일:', imageFile);
@@ -208,7 +208,7 @@ export async function createProblemWithImage(data: any, imageFile?: File): Promi
   
   // FormData 내용 확인
   console.log('=== FormData 내용 ===');
-  for (let [key, value] of formData.entries()) {
+  for (const [key, value] of formData.entries()) {
     console.log(`${key}:`, value);
   }
   
@@ -336,11 +336,12 @@ export async function updateQuestion(questionId: number, question: Partial<Probl
 }
 
 // 엑셀/CSV 업로드 함수들 (실제 Django 엔드포인트에 맞춰 추후 수정 필요)
-export async function uploadProgressData(progressList: ProgressUploadData[]): Promise<any> {
+export async function uploadProgressData(progressList: ProgressUploadData[]): Promise<unknown> {
   // 진도 일괄 업로드 - Django에서 지원하는 엔드포인트가 있다면 수정
   const results = [];
   for (const progressData of progressList) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await createProgress(progressData as any);
       results.push(result);
     } catch (error) {
@@ -351,12 +352,13 @@ export async function uploadProgressData(progressList: ProgressUploadData[]): Pr
   return { success: true, data: results };
 }
 
-export async function uploadProblemData(problems: ProblemUploadData[]): Promise<any> {
+export async function uploadProblemData(problems: ProblemUploadData[]): Promise<unknown> {
   // 문제 일괄 업로드 - Django에서 지원하는 엔드포인트가 있다면 수정
   const results = [];
   for (const problemData of problems) {
     try {
       // 실제 구현시 데이터 변환 로직 필요
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await createProblem(problemData as any);
       results.push(result);
     } catch (error) {

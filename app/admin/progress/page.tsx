@@ -19,7 +19,6 @@ import {
   getProblemsByProgress,
 } from '@/lib/admin/problemService';
 import {
-  getSubjectsWithDetails,
   getSubjects,
 } from '@/lib/admin/subjectService';
 
@@ -42,7 +41,6 @@ interface Subject {
 export default function ProblemsPage() {
   const {
     // user,
-    loading: authLoading,
     // isAuthenticated,
     shouldRender,
   } = useRequireAuth();
@@ -155,7 +153,7 @@ export default function ProblemsPage() {
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
         // 수정된 업로드 로직 - upload/page.tsx와 동일한 로직 사용
-        await uploadProgressDataWithMapping(jsonData as any);
+        await uploadProgressDataWithMapping(jsonData as Record<string, unknown>[]);
 
         alert('진도표가 성공적으로 업로드되었습니다.');
 
@@ -178,11 +176,11 @@ export default function ProblemsPage() {
     심화: 'advanced',
   };
 
-  const uploadProgressDataWithMapping = async (data: any[]) => {
+  const uploadProgressDataWithMapping = async (data: Record<string, unknown>[]) => {
     const subjectsData = await getSubjects();
 
     for (const row of data) {
-      const progressData: any = {};
+      const progressData: Record<string, unknown> = {};
 
       // 진도명 처리
       if (row.진도 && String(row.진도).trim()) {
@@ -215,11 +213,16 @@ export default function ProblemsPage() {
       }
 
       // 필수 필드 검증
-      if (!progressData.name || !progressData.name.trim()) {
+      if (!progressData.name || !String(progressData.name).trim()) {
         continue;
       }
 
-      await createProgress(progressData);
+      await createProgress(progressData as {
+        name: string;
+        day: number;
+        difficulty: 'basic' | 'advanced';
+        subject: number;
+      });
     }
   };
 
@@ -237,7 +240,7 @@ export default function ProblemsPage() {
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
         // 수정된 업로드 로직 사용
-        await uploadProblemDataWithMapping(jsonData as any);
+        await uploadProblemDataWithMapping(jsonData as Record<string, unknown>[]);
 
         alert('문제가 성공적으로 업로드되었습니다.');
         // 데이터 새로고침
@@ -253,7 +256,7 @@ export default function ProblemsPage() {
     reader.readAsArrayBuffer(file);
   };
 
-  const uploadProblemDataWithMapping = async (data: any[]) => {
+  const uploadProblemDataWithMapping = async (data: Record<string, unknown>[]) => {
     const subjectsData = await getSubjects();
     const progressesData = await getProgresses();
 
@@ -287,7 +290,7 @@ export default function ProblemsPage() {
       }
 
       // 문제 데이터 구성
-      const problemData: any = {
+      const problemData: Record<string, unknown> = {
         progress: progress.progress_id,
         answer: parseInt(String(row.answer || row.정답)),
         explanation: String(row.explanation || row.해설 || ''),
@@ -316,7 +319,17 @@ export default function ProblemsPage() {
 
       // 문제 생성
       try {
-        const createdProblem = await createProblem(problemData);
+        const createdProblem = await createProblem(problemData as {
+          progress: number;
+          content: string;
+          answer: number;
+          explanation?: string;
+          source?: string;
+          exam_year?: string;
+          difficulty: 'basic' | 'advanced';
+          image?: string;
+          sequence?: number;
+        });
 
         // 선택지 생성 - 다양한 컬럼명 지원
         const choices = [
@@ -334,8 +347,8 @@ export default function ProblemsPage() {
             problem_management: createdProblem.problem_management_id,
           });
         }
-      } catch (error: any) {
-        console.error(`문제 ${index + 1} 생성 실패:`, error.message);
+      } catch (error: unknown) {
+        console.error(`문제 ${index + 1} 생성 실패:`, error instanceof Error ? error.message : String(error));
         continue;
       }
     }

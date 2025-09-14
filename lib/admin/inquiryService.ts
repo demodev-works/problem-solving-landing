@@ -51,17 +51,22 @@ export async function getTotalInquiries(
   console.log('getTotalInquiries API 응답:', rawData);
   
   // 원시 데이터를 FormattedInquiry 형태로 변환
-  const formattedData: FormattedInquiry[] = (rawData as any[]).map((inquiry: any) => ({
-    id: inquiry.total_inquiries_id?.toString() || '',
-    inquirerName: inquiry.user?.name || '알 수 없음',
-    inquirerEmail: inquiry.user?.email || '',
-    inquiryType: inquiry.inquiries_type?.inquiries_type || '기타',
-    content: inquiry.content || '',
-    imageUrl: inquiry.image_url,
-    status: inquiry.state ? "completed" : "waiting",
-    createdAt: inquiry.created_at ? new Date(inquiry.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    answer: inquiry.content_answer || undefined,
-  }));
+  const formattedData: FormattedInquiry[] = (rawData as unknown as Record<string, unknown>[]).map((inquiry: Record<string, unknown>) => {
+    const user = inquiry.user as Record<string, unknown> | undefined;
+    const inquiryType = inquiry.inquiries_type as Record<string, unknown> | undefined;
+    
+    return {
+      id: inquiry.total_inquiries_id?.toString() || '',
+      inquirerName: user?.name?.toString() || '알 수 없음',
+      inquirerEmail: user?.email?.toString() || '',
+      inquiryType: inquiryType?.inquiries_type?.toString() || '기타',
+      content: inquiry.content?.toString() || '',
+      imageUrl: inquiry.image_url?.toString(),
+      status: inquiry.state ? "completed" : "waiting",
+      createdAt: inquiry.created_at ? new Date(inquiry.created_at as string).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      answer: inquiry.content_answer?.toString() || undefined,
+    };
+  });
   
   console.log('변환된 데이터:', formattedData);
   return formattedData;
@@ -96,16 +101,20 @@ export async function getInquiryById(inquiryId: string): Promise<FormattedInquir
   try {
     const rawData = await apiClient.get<TotalInquiry>(`/admin/supports/inquiries/${inquiryId}/`);
     // 단일 문의도 FormattedInquiry로 변환
+    const inquiryData = rawData as unknown as Record<string, unknown>;
+    const user = inquiryData.user as Record<string, unknown> | undefined;
+    const inquiryType = inquiryData.inquiries_type as Record<string, unknown> | undefined;
+    
     const formattedData: FormattedInquiry = {
-      id: (rawData as any).total_inquiries_id?.toString() || '',
-      inquirerName: (rawData as any).user?.name || '알 수 없음',
-      inquirerEmail: (rawData as any).user?.email || '',
-      inquiryType: (rawData as any).inquiries_type?.inquiries_type || '기타',
-      content: (rawData as any).content || '',
-      imageUrl: (rawData as any).image_url,
-      status: (rawData as any).state ? "completed" : "waiting",
-      createdAt: (rawData as any).created_at ? new Date((rawData as any).created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      answer: (rawData as any).content_answer || undefined,
+      id: inquiryData.total_inquiries_id?.toString() || '',
+      inquirerName: user?.name?.toString() || '알 수 없음',
+      inquirerEmail: user?.email?.toString() || '',
+      inquiryType: inquiryType?.inquiries_type?.toString() || '기타',
+      content: inquiryData.content?.toString() || '',
+      imageUrl: inquiryData.image_url?.toString(),
+      status: inquiryData.state ? "completed" : "waiting",
+      createdAt: inquiryData.created_at ? new Date(inquiryData.created_at as string).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      answer: inquiryData.content_answer?.toString() || undefined,
     };
     return formattedData;
   } catch (error) {

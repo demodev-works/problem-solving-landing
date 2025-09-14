@@ -85,7 +85,7 @@ export default function StudentsPage() {
     try {
       setLoading(true);
 
-      const params: any = {
+      const params: Record<string, unknown> = {
         page: currentPage,
         ordering: '-created_at',
       };
@@ -171,10 +171,10 @@ export default function StudentsPage() {
       setHasNext(hasNext);
       setHasPrevious(hasPrevious);
       setError(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = '사용자 목록을 불러오는데 실패했습니다.';
 
-      if (error.message) {
+      if (error instanceof Error && error.message) {
         if (error.message.includes('500')) {
           errorMessage =
             '서버 내부 오류가 발생했습니다. 백엔드 팀에 문의해주세요.';

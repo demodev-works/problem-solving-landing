@@ -131,12 +131,13 @@ export default function StudentDetailPage() {
       setUser(updatedUser);
       setIsEditing(false);
       alert('사용자 정보가 성공적으로 수정되었습니다.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = '사용자 정보 수정 중 오류가 발생했습니다.';
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        if (typeof errorData === 'object') {
-          const errors = Object.entries(errorData)
+      if (error instanceof Error && 'response' in error) {
+        const errorResponse = error as Error & { response?: { data?: unknown } };
+        const errorData = errorResponse.response?.data;
+        if (typeof errorData === 'object' && errorData !== null) {
+          const errors = Object.entries(errorData as Record<string, unknown>)
             .map(([key, value]) => `${key}: ${value}`)
             .join(', ');
           errorMessage = `오류: ${errors}`;

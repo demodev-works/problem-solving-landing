@@ -7,7 +7,6 @@ import * as XLSX from 'xlsx';
 import { useRequireAuth } from '@/hooks/admin/useAuth';
 import {
   getMemoProgresses,
-  getMemoProblemDataByProgress,
   deleteMemoProgress,
   updateMemoProgress,
   createMemoProgress,
@@ -107,7 +106,7 @@ export default function MemorizationPage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        await uploadMemoProgressDataWithMapping(jsonData as any);
+        await uploadMemoProgressDataWithMapping(jsonData as Record<string, unknown>[]);
 
         alert('암기 진도표가 성공적으로 업로드되었습니다.');
         await fetchData();
@@ -120,9 +119,9 @@ export default function MemorizationPage() {
     reader.readAsArrayBuffer(file);
   };
 
-  const uploadMemoProgressDataWithMapping = async (data: any[]) => {
+  const uploadMemoProgressDataWithMapping = async (data: Record<string, unknown>[]) => {
     for (const row of data) {
-      const progressData: any = {};
+      const progressData: Record<string, unknown> = {};
 
       // 진도명 처리
       if (row.진도 && String(row.진도).trim()) {
@@ -153,11 +152,12 @@ export default function MemorizationPage() {
       }
 
       // 필수 필드 검증
-      if (!progressData.name || !progressData.name.trim()) {
+      if (!progressData.name || !String(progressData.name).trim()) {
         continue;
       }
 
-      await createMemoProgress(progressData);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await createMemoProgress(progressData as any);
     }
   };
 
@@ -174,7 +174,7 @@ export default function MemorizationPage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        await uploadMemoProblemDataWithMapping(jsonData as any);
+        await uploadMemoProblemDataWithMapping(jsonData as Record<string, unknown>[]);
 
         alert('암기 문제가 성공적으로 업로드되었습니다.');
         await fetchData();
@@ -187,9 +187,9 @@ export default function MemorizationPage() {
     reader.readAsArrayBuffer(file);
   };
 
-  const uploadMemoProblemDataWithMapping = async (data: any[]) => {
+  const uploadMemoProblemDataWithMapping = async (data: Record<string, unknown>[]) => {
     const progressesData = await getMemoProgresses();
-    const validMemoDataList: any[] = [];
+    const validMemoDataList: Record<string, unknown>[] = [];
 
     // 모든 데이터를 검증하고 배열에 수집
     for (const row of data) {
@@ -207,14 +207,14 @@ export default function MemorizationPage() {
       }
 
       // 암기 문제 데이터 구성
-      const memoData: any = {
+      const memoData: Record<string, unknown> = {
         memo_progress: progress.memo_progress_id,
         problem: String(row.problem || row.문제 || ''),
         answer: String(row.answer || row.정답 || row.해설 || ''),
       };
 
       // 필수 필드 검증
-      if (!memoData.problem.trim() || !memoData.answer.trim()) {
+      if (!String(memoData.problem).trim() || !String(memoData.answer).trim()) {
         continue;
       }
 
@@ -224,9 +224,10 @@ export default function MemorizationPage() {
     // Bulk 생성 - 한 번의 API 호출로 모든 문제 생성
     if (validMemoDataList.length > 0) {
       try {
-        await bulkCreateMemoProblemData(validMemoDataList);
-      } catch (error: any) {
-        console.error('암기 문제 bulk 생성 실패:', error.message);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await bulkCreateMemoProblemData(validMemoDataList as any);
+      } catch (error: unknown) {
+        console.error('암기 문제 bulk 생성 실패:', error instanceof Error ? error.message : String(error));
         throw error;
       }
     }
