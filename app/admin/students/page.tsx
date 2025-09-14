@@ -17,6 +17,10 @@ import {
   PrepareMajor,
   UsersResponse,
 } from '@/lib/admin/userService';
+import {
+  getOverallProgressStats,
+  ProgressCorrectRateStats,
+} from '@/lib/admin/analyticsService';
 
 interface UserDisplay {
   user_id: string;
@@ -42,6 +46,8 @@ export default function StudentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statistics, setStatistics] = useState<UserStatistics | null>(null);
   const [prepareMajors, setPrepareMajors] = useState<PrepareMajor[]>([]);
+  const [progressStats, setProgressStats] = useState<ProgressCorrectRateStats[]>([]);
+  const [progressStatsError, setProgressStatsError] = useState<string | null>(null);
 
   // 검색 및 필터 상태
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,6 +71,7 @@ export default function StudentsPage() {
       fetchData();
       fetchStatistics();
       fetchPrepareMajors();
+      fetchProgressStats();
     }
   }, [shouldRender, currentPage]);
 
@@ -214,6 +221,20 @@ export default function StudentsPage() {
       setPrepareMajors(majors);
     } catch (error) {
       console.error('전공 목록 로딩 실패:', error);
+    }
+  };
+
+  const fetchProgressStats = async () => {
+    try {
+      setProgressStatsError(null);
+      console.log('🔄 진도별 정답률 조회 시작...');
+      const stats = await getOverallProgressStats();
+      console.log('📊 진도별 정답률 응답:', stats);
+      setProgressStats(stats);
+    } catch (error) {
+      console.error('❌ 진도별 정답률 로딩 실패:', error);
+      setProgressStatsError('진도별 정답률을 불러오는데 오류가 발생했습니다.');
+      setProgressStats([]);
     }
   };
 
@@ -397,6 +418,63 @@ export default function StudentsPage() {
             </div>
           </div>
         )}
+
+        {/* 진도별 정답률 통계 */}
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">진도별 전체 정답률</h2>
+            <div className="text-sm text-gray-500">Day별 정답률 (최신순)</div>
+          </div>
+          
+          {progressStatsError ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-red-600">{progressStatsError}</p>
+            </div>
+          ) : progressStats.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {progressStats.map((stat) => (
+                <div
+                  key={stat.progress_day}
+                  className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                      Day {stat.progress_day}
+                    </div>
+                    <div className={`text-lg font-bold ${
+                      stat.overall_correct_rate >= 80 
+                        ? 'text-green-600' 
+                        : stat.overall_correct_rate >= 60 
+                        ? 'text-yellow-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {stat.overall_correct_rate}%
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-700 font-medium mb-2 truncate">
+                    {stat.progress_name}
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${
+                        stat.overall_correct_rate >= 80 
+                          ? 'bg-green-500' 
+                          : stat.overall_correct_rate >= 60 
+                          ? 'bg-yellow-500' 
+                          : 'bg-red-500'
+                      }`}
+                      style={{ width: `${stat.overall_correct_rate}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-sm text-gray-500">진도별 정답률 정보가 없습니다.</p>
+            </div>
+          )}
+        </div>
 
         {/* 검색 및 필터 영역 */}
         <div className="bg-white shadow rounded-lg p-6 mb-6">

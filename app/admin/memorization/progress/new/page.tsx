@@ -33,12 +33,12 @@ export default function NewMemorizationProgressPage() {
     setLoading(true);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await createMemoProgress({
         name: progressName.trim(),
         day: day as number,
         difficulty,
-      } as any);
+        total_problems: 0,
+      });
 
       alert('암기 진도가 성공적으로 추가되었습니다.');
       router.push('/admin/memorization');

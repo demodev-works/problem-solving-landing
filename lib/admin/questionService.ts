@@ -67,12 +67,12 @@ export async function getQuestions(): Promise<FormattedQuestion[]> {
   let questions: Record<string, unknown>[] = [];
   if (Array.isArray(response)) {
     questions = response as Record<string, unknown>[];
-  } else if (response && typeof response === 'object' && 'results' in response && Array.isArray((response as any).results)) {
+  } else if (response && typeof response === 'object' && 'results' in response && Array.isArray((response as Record<string, unknown>).results)) {
     // Django REST framework의 페이지네이션 응답 처리
-    questions = (response as any).results;
-  } else if (response && typeof response === 'object' && 'data' in response && Array.isArray((response as any).data)) {
+    questions = (response as Record<string, unknown>).results as Record<string, unknown>[];
+  } else if (response && typeof response === 'object' && 'data' in response && Array.isArray((response as Record<string, unknown>).data)) {
     // 다른 형식의 응답 처리
-    questions = (response as any).data;
+    questions = (response as Record<string, unknown>).data as Record<string, unknown>[];
   } else {
     console.error('예상하지 못한 질문 응답 형식:', response);
     return [];

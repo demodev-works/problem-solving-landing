@@ -16,6 +16,10 @@ import {
   UserSubscription,
   PrepareMajor,
 } from '@/lib/admin/userService';
+import {
+  getUserProgressStats,
+  UserProgressStats,
+} from '@/lib/admin/analyticsService';
 
 export default function StudentDetailPage() {
   const { shouldRender } = useRequireAuth();
@@ -27,6 +31,12 @@ export default function StudentDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
   const [prepareMajors, setPrepareMajors] = useState<PrepareMajor[]>([]);
+  const [userProgressStats, setUserProgressStats] = useState<
+    UserProgressStats[]
+  >([]);
+  const [progressStatsError, setProgressStatsError] = useState<string | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +55,7 @@ export default function StudentDetailPage() {
       fetchUserDetail();
       fetchUserSubscriptions();
       fetchPrepareMajors();
+      fetchUserProgressStats();
     }
   }, [shouldRender, userId]);
 
@@ -94,6 +105,20 @@ export default function StudentDetailPage() {
     }
   };
 
+  const fetchUserProgressStats = async () => {
+    try {
+      setProgressStatsError(null);
+      console.log('🔄 사용자 진도별 정답률 조회 시작...', userId);
+      const stats = await getUserProgressStats(userId, true);
+      console.log('📊 사용자 진도별 정답률 응답:', stats);
+      setUserProgressStats(stats);
+    } catch (error) {
+      console.error('❌ 사용자 진도별 정답률 로딩 실패:', error);
+      setProgressStatsError('진도별 정답률을 불러오는데 오류가 발생했습니다.');
+      setUserProgressStats([]);
+    }
+  };
+
   const formatPhoneNumber = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     const limitedNumbers = numbers.slice(0, 11);
@@ -134,7 +159,9 @@ export default function StudentDetailPage() {
     } catch (error: unknown) {
       let errorMessage = '사용자 정보 수정 중 오류가 발생했습니다.';
       if (error instanceof Error && 'response' in error) {
-        const errorResponse = error as Error & { response?: { data?: unknown } };
+        const errorResponse = error as Error & {
+          response?: { data?: unknown };
+        };
         const errorData = errorResponse.response?.data;
         if (typeof errorData === 'object' && errorData !== null) {
           const errors = Object.entries(errorData as Record<string, unknown>)
@@ -281,12 +308,10 @@ export default function StudentDetailPage() {
               )}
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
           {/* 기본 정보 */}
-          <div className="lg:col-span-2">
-            <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-medium text-gray-900">기본 정보</h2>
                 <div className="flex items-center space-x-3">
@@ -306,12 +331,30 @@ export default function StudentDetailPage() {
                       </button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      수정
-                    </button>
+                    <>
+                      <button
+                        onClick={handleActivateUser}
+                        className={`px-3 py-1 text-sm font-medium rounded-md ${
+                          user.is_active
+                            ? 'bg-orange-600 text-white hover:bg-orange-700'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        {user.is_active ? '비활성화' : '활성화'}
+                      </button>
+                      <button
+                        onClick={handleDeleteUser}
+                        className="px-3 py-1 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700"
+                      >
+                        사용자 삭제
+                      </button>
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      >
+                        수정
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -597,92 +640,89 @@ export default function StudentDetailPage() {
             </div>
           </div>
 
-          {/* 사이드바 */}
-          <div className="space-y-6">
-            {/* 통계 정보 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                통계 정보
-              </h3>
-              {user.subscription_status ? (
-                <div className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">상태</dt>
-                    <dd className="mt-1">
+        </div>
+
+        {/* 진도별 정답률 - 기본정보 밑에 별도 섹션으로 */}
+        <div className="mt-6 bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            진도별 정답률
+          </h3>
+          {progressStatsError ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-red-600">{progressStatsError}</p>
+            </div>
+          ) : userProgressStats.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {userProgressStats.map((stat, index) => (
+                <div
+                  key={index}
+                  className="border-l-4 border-blue-500 pl-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-gray-900 text-sm">
+                      {stat.progress_name}
+                    </h4>
+                  </div>
+
+                  {/* 사용자 정답률 */}
+                  <div className="mb-3">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-blue-600">
+                        개인
+                      </span>
                       <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          user.subscription_status.status === 'active'
-                            ? 'bg-blue-100 text-blue-700'
-                            : user.subscription_status.status === 'expired'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
+                        className={`text-sm font-bold ${
+                          stat.user_correct_rate >= 80
+                            ? 'text-green-600'
+                            : stat.user_correct_rate >= 60
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
                         }`}
                       >
-                        {user.subscription_status.status === 'active'
-                          ? '활성'
-                          : user.subscription_status.status === 'expired'
-                          ? '만료'
-                          : '취소'}
+                        {stat.user_correct_rate}%
                       </span>
-                    </dd>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full ${
+                          stat.user_correct_rate >= 80
+                            ? 'bg-green-500'
+                            : stat.user_correct_rate >= 60
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500'
+                        }`}
+                        style={{ width: `${stat.user_correct_rate}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">
-                      구독 타입
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {user.subscription_status.subscription_type === 'monthly'
-                        ? '월간'
-                        : user.subscription_status.subscription_type ===
-                          'yearly'
-                        ? '연간'
-                        : user.subscription_status.subscription_type ===
-                          'lifetime'
-                        ? '평생'
-                        : '-'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">
-                      만료일
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {new Date(
-                        user.subscription_status.expired_at
-                      ).toLocaleDateString('ko-KR')}
-                    </dd>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">통계 정보가 없습니다.</p>
-              )}
-            </div>
 
-            {/* 액션 버튼 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                관리 작업
-              </h3>
-              <div className="space-y-3">
-                <button
-                  onClick={handleActivateUser}
-                  className={`w-full px-4 py-2 text-sm font-medium rounded-md ${
-                    user.is_active
-                      ? 'bg-orange-600 text-white hover:bg-orange-700'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {user.is_active ? '비활성화' : '활성화'}
-                </button>
-                <button
-                  onClick={handleDeleteUser}
-                  className="w-full px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  사용자 삭제
-                </button>
-              </div>
+                  {/* 전체 평균 (있는 경우) */}
+                  {stat.overall_correct_rate !== undefined && (
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-gray-500">
+                          전체 평균
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          {stat.overall_correct_rate}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1">
+                        <div
+                          className="h-1 rounded-full bg-gray-400"
+                          style={{ width: `${stat.overall_correct_rate}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              진도별 정답률 정보가 없습니다.
+            </p>
+          )}
         </div>
 
         {/* 구독 히스토리 */}
