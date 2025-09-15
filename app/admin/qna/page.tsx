@@ -27,6 +27,8 @@ interface QuestionDisplay {
     answer: number;
     explanation: string;
     image?: string | null;
+    progress_name?: string;
+    subject_name?: string;
     selects: {
       question_number: number;
       content: string;
@@ -52,6 +54,7 @@ export default function QnaPage() {
   const [selectedState, setSelectedState] = useState<
     'all' | 'pending' | 'answered'
   >('all');
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
 
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,7 +73,7 @@ export default function QnaPage() {
       setCurrentPage(1);
       fetchData();
     }
-  }, [searchTerm, selectedState]);
+  }, [searchTerm, selectedState, selectedSubject]);
 
   const fetchData = async () => {
     try {
@@ -110,7 +113,7 @@ export default function QnaPage() {
         throw new Error('API 응답 구조가 예상과 다릅니다.');
       }
 
-      const formattedQuestions: QuestionDisplay[] = questions.map(
+      let formattedQuestions: QuestionDisplay[] = questions.map(
         (question: Question) => {
           return {
             question_id: question.question_id,
@@ -124,6 +127,13 @@ export default function QnaPage() {
           };
         }
       );
+
+      // 과목 필터 적용 (클라이언트 사이드)
+      if (selectedSubject !== 'all') {
+        formattedQuestions = formattedQuestions.filter(
+          (question) => question.problem_info?.subject_name === selectedSubject
+        );
+      }
 
       setQuestions(formattedQuestions);
       setTotalCount(totalCount);
@@ -171,13 +181,24 @@ export default function QnaPage() {
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedState('all');
+    setSelectedSubject('all');
   };
 
-  const hasActiveFilters = searchTerm || selectedState !== 'all';
+  const hasActiveFilters = searchTerm || selectedState !== 'all' || selectedSubject !== 'all';
+
+  // 과목 목록 추출 (중복 제거)
+  const subjects = Array.from(
+    new Set(
+      questions
+        .map((q) => q.problem_info?.subject_name)
+        .filter((subject): subject is string => !!subject)
+    )
+  ).sort();
 
   const headers = [
     '질문 ID',
     '사용자',
+    '과목',
     '제목',
     '문제 내용',
     '상태',
@@ -194,10 +215,17 @@ export default function QnaPage() {
         <div className="max-w-xs truncate font-mono">{question.user_email}</div>
       </td>
       <td className="px-6 py-4 text-sm text-gray-500">
+        <div className="max-w-xs truncate">
+          <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+            {question.problem_info?.subject_name || '미분류'}
+          </span>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">
         <div className="max-w-xs truncate font-medium">{question.title}</div>
       </td>
       <td className="px-6 py-4 text-sm text-gray-500">
-        <div className="max-w-xs truncate">
+        <div className="max-w-[120px] truncate">
           {question.problem_info?.content || '문제 없음'}
         </div>
       </td>
@@ -219,7 +247,7 @@ export default function QnaPage() {
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {new Date(question.created_at).toLocaleDateString('ko-KR')}
+        {new Date(question.created_at).toLocaleDateString('ko-KR').replace(/^20/, '').replace(/\.$/, '')}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         <Link
@@ -307,6 +335,25 @@ export default function QnaPage() {
                   />
                 </svg>
               </div>
+            </div>
+
+            {/* 과목 필터 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                과목
+              </label>
+              <select
+                value={selectedSubject}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">전체</option>
+                {subjects.map((subject) => (
+                  <option key={subject} value={subject}>
+                    {subject}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* 상태 필터 */}

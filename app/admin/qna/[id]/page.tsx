@@ -72,24 +72,25 @@ export default function QuestionDetailPage() {
     }
   };
 
-  const handleDeleteQuestion = async () => {
-    if (!question) return;
+  // TODO: 삭제 기능이 필요하면 주석 해제하고 UI에 삭제 버튼 추가
+  // const handleDeleteQuestion = async () => {
+  //   if (!question) return;
 
-    if (
-      confirm(
-        `정말로 이 질문을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
-      )
-    ) {
-      try {
-        await deleteQuestion(question.question_id);
-        alert('질문이 삭제되었습니다.');
-        router.push('/qna');
-      } catch (error) {
-        console.error('질문 삭제 실패:', error);
-        alert('질문 삭제 중 오류가 발생했습니다.');
-      }
-    }
-  };
+  //   if (
+  //     confirm(
+  //       `정말로 이 질문을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
+  //     )
+  //   ) {
+  //     try {
+  //       await deleteQuestion(question.question_id);
+  //       alert('질문이 삭제되었습니다.');
+  //       router.push('/qna');
+  //     } catch (error) {
+  //       console.error('질문 삭제 실패:', error);
+  //       alert('질문 삭제 중 오류가 발생했습니다.');
+  //     }
+  //   }
+  // };
 
   // 로딩 중이거나 인증되지 않은 경우 로딩 화면 표시
   if (!shouldRender || loading) {
